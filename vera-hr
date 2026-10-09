@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>VERA People</title>
+  <style>
+    :root {
+      --bg-color: #0b1329;
+      --card-bg: #131e3a;
+      --card-border: #1e2d54;
+      --accent-blue: #3b82f6;
+      --text-main: #ffffff;
+      --text-sub: #8b9bb4;
+      --green: #10b981;
+      --orange: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 40px; }
+    
+    /* Header & Navigation */
+    .header { padding: 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--card-border); }
+    .logo { width: 36px; height: 36px; background: #06b6d4; color: #fff; font-weight: bold; font-size: 20px; display: flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .brand-title { font-size: 18px; font-weight: 700; letter-spacing: 0.5px; }
+    .brand-sub { font-size: 11px; color: var(--text-sub); margin-left: 4px; font-weight: 600; }
+    
+    .nav-scroll { display: flex; overflow-x: auto; padding: 12px 16px; gap: 8px; border-bottom: 1px solid var(--card-border); scrollbar-width: none; }
+    .nav-scroll::-webkit-scrollbar { display: none; }
+    .nav-btn { background: transparent; color: var(--text-sub); border: none; padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .nav-btn.active { background: #1a274c; color: var(--text-main); border-bottom: 2px solid var(--accent-blue); }
+
+    .main-container { padding: 16px; }
+    
+    /* Title Section */
+    .section-tag { font-size: 11px; color: var(--green); font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; }
+    .page-title-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+    .page-title { font-size: 22px; font-weight: 700; }
+    .page-desc { font-size: 12px; color: var(--text-sub); margin-top: 2px; }
+    .export-btn { background: #1a274c; border: 1px solid var(--card-border); color: #fff; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; position: relative; }
+    .stat-header { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-sub); font-weight: 500; }
+    .stat-val { font-size: 26px; font-weight: 700; margin: 8px 0; }
+    .stat-badge { font-size: 10px; display: flex; align-items: center; gap: 4px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Sections */
+    .card-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .card-title { font-size: 15px; font-weight: 700; }
+    .card-sub { font-size: 11px; color: var(--text-sub); }
+
+    /* Quick Actions */
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+    .action-btn { background: #1e2b4e; color: #fff; border: 1px solid var(--card-border); padding: 12px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+    .action-btn.primary { background: var(--accent-blue); }
+
+    /* Modal / Form */
+    .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+    .modal-content { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; width: 100%; max-width: 400px; padding: 20px; }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+    .form-group input, .form-group select { width: 100%; background: #0b1329; border: 1px solid var(--card-border); color: #fff; padding: 10px; border-radius: 6px; font-size: 13px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    .btn { padding: 8px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; }
+    .btn-cancel { background: #334155; color: #fff; }
+    .btn-save { background: var(--accent-blue); color: #fff; }
+
+    /* Tab Contents */
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .item-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1a274c; font-size: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">V</div>
+    <div>
+      <span class="brand-title">VERA</span>
+      <span class="brand-sub">PEOPLE</span>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <div class="nav-scroll">
+    <button class="nav-btn active" onclick="switchTab('overview', this)">■ Genel Bakış</button>
+    <button class="nav-btn" onclick="switchTab('personnel', this)">👤 Personeller</button>
+    <button class="nav-btn" onclick="switchTab('shifts', this)">🕒 Vardiya Planı</button>
+    <button class="nav-btn" onclick="switchTab('leaves', this)">📋 İzin Yönetimi</button>
+    <button class="nav-btn" onclick="switchTab('overtime', this)">⚡ Mesai Kayıtları</button>
+  </div>
+
+  <div class="main-container">
+    <div class="section-tag">PEOPLE OPERATIONS / 01</div>
+    <div class="page-title-row">
+      <div>
+        <div class="page-title" id="tabTitle">Genel Bakış</div>
+        <div class="page-desc">Ekibinizin bugünkü durumuna tek ekrandan bakın.</div>
+      </div>
+      <button class="export-btn" onclick="exportData()">↓ Dışa aktar</button>
+    </div>
+
+    <!-- TAB 1: GENEL BAKIŞ -->
+    <div id="overview" class="tab-content active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-header">Toplam personel <span>👤</span></div>
+          <div class="stat-val" id="totalPersonnelVal">0</div>
+          <div class="stat-badge"><span class="dot" style="background:var(--green)"></span> Kayıtlı çalışanlar</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">Aktif personel <span>↗</span></div>
+          <div class="stat-val" id="activePersonnelVal">0</div>
+          <div class="stat-badge"><span class="dot" style="background:var(--green)"></span> Çalışma durumunda</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">Bekleyen izin <span>🕒</span></div>
+          <div class="stat-val" id="pendingLeavesVal">0</div>
+          <div class="stat-badge"><span class="dot" style="background:var(--orange)"></span> Onay bekliyor</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-header">Bu ay mesai <span>⚡</span></div>
+          <div class="stat-val" id="totalOvertimeVal">0 <span style="font-size:14px;font-weight:normal">saat</span></div>
+          <div class="stat-badge"><span class="dot" style="background:var(--green)"></span> Kayıtlı fazla mesai</div>
+        </div>
+      </div>
+
+      <div class="card-box">
+        <div class="card-head">
+          <div>
+            <div class="card-title">İş gücü özeti</div>
+            <div class="card-sub">Departmanlara göre personel dağılımı</div>
+          </div>
+        </div>
+        <div id="deptSummaryList" style="font-size: 12px; color: var(--text-sub);">Henüz veri girilmedi.</div>
+      </div>
+
+      <div class="card-box">
+        <div class="card-title">Son hareketler</div>
+        <div class="card-sub" style="margin-bottom: 8px;">Son eklenen personel ve kayıtlar</div>
+        <div id="recentActivityList"></div>
+      </div>
+
+      <div class="card-box">
+        <div class="card-title">Hızlı işlemler</div>
+        <div class="card-sub">Sık kullanılan işlemlere anında ulaşın</div>
+        <div class="quick-grid">
+          <button class="action-btn primary" onclick="openModal('modalPersonnel')">+ Personel ekle</button>
+          <button class="action-btn" onclick="openModal('modalShift')">+ Vardiya ata</button>
+          <button class="action-btn" onclick="openModal('modalLeave')">+ İzin talebi kaydet</button>
+          <button class="action-btn" onclick="openModal('modalOvertime')">+ Mesai ekle</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: PERSONELLER -->
+    <div id="personnel" class="tab-content">
+      <div class="card-box">
+        <div class="card-head">
+          <div class="card-title">Personel Listesi</div>
+          <button class="btn btn-save" onclick="openModal('modalPersonnel')">+ Yeni Personel</button>
+        </div>
+        <div id="personnelList"></div>
+      </div>
+    </div>
+
+    <!-- TAB 3: VARDİYA PLANLARI -->
+    <div id="shifts" class="tab-content">
+      <div class="card-box">
+        <div class="card-head">
+          <div class="card-title">Vardiya Atamaları</div>
+          <button class="btn btn-save" onclick="openModal('modalShift')">+ Vardiya Ata</button>
+        </div>
+        <div id="shiftList"></div>
+      </div>
+    </div>
+
+    <!-- TAB 4: İZİN YÖNETİMİ -->
+    <div id="leaves" class="tab-content">
+      <div class="card-box">
+        <div class="card-head">
+          <div class="card-title">İzin Talepleri</div>
+          <button class="btn btn-save" onclick="openModal('modalLeave')">+ İzin Talebi</button>
+        </div>
+        <div id="leaveList"></div>
+      </div>
+    </div>
+
+    <!-- TAB 5: MESAİ KAYITLARI -->
+    <div id="overtime" class="tab-content">
+      <div class="card-box">
+        <div class="card-head">
+          <div class="card-title">Mesai Kayıtları</div>
+          <button class="btn btn-save" onclick="openModal('modalOvertime')">+ Mesai Ekle</button>
+        </div>
+        <div id="overtimeList"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODALS -->
+  <div id="modalPersonnel" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Personel Ekle</div>
+      <div class="form-group"><label>Ad Soyad</label><input type="text" id="pName"></div>
+      <div class="form-group"><label>Departman</label><input type="text" id="pDept" placeholder="Örn: Üretim, İK, BT"></div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeModal('modalPersonnel')">İptal</button>
+        <button class="btn btn-save" onclick="addPersonnel()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalShift" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Vardiya Ata</div>
+      <div class="form-group"><label>Personel</label><select id="sPersonnel"></select></div>
+      <div class="form-group"><label>Vardiya Tipi</label>
+        <select id="sShift">
+          <option>Gündüz (08:00 - 16:00)</option>
+          <option>Akşam (16:00 - 00:00)</option>
+          <option>Gece (00:00 - 08:00)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeModal('modalShift')">İptal</button>
+        <button class="btn btn-save" onclick="addShift()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalLeave" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">İzin Talebi Kaydet</div>
+      <div class="form-group"><label>Personel</label><select id="lPersonnel"></select></div>
+      <div class="form-group"><label>İzin Türü</label><input type="text" id="lType" placeholder="Örn: Yıllık İzin, Rapor"></div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeModal('modalLeave')">İptal</button>
+        <button class="btn btn-save" onclick="addLeave()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modalOvertime" class="modal">
+    <div class="modal-content">
+      <div class="modal-title">Mesai Ekle</div>
+      <div class="form-group"><label>Personel</label><select id="oPersonnel"></select></div>
+      <div class="form-group"><label>Süre (Saat)</label><input type="number" id="oHours" value="2"></div>
+      <div class="modal-actions">
+        <button class="btn btn-cancel" onclick="closeModal('modalOvertime')">İptal</button>
+        <button class="btn btn-save" onclick="addOvertime()">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Verileri LocalStorage üzerinde saklama ve yükleme
+    const savedData = localStorage.getItem('vera_people_db');
+    let db = savedData ? JSON.parse(savedData) : {
+      personnel: [],
+      shifts: [],
+      leaves: [],
+      overtime: [],
+      activities: []
+    };
+
+    function saveData() {
+      localStorage.setItem('vera_people_db', JSON.stringify(db));
+    }
+
+    function switchTab(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+      document.getElementById('tabTitle').innerText = btn.innerText.replace(/[^a-zA-ZĞÜŞİÖÇğüşiöç\s]/g, '').trim();
+    }
+
+    function openModal(id) {
+      populateDropdowns();
+      document.getElementById(id).style.display = 'flex';
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    function populateDropdowns() {
+      const options = db.personnel.map(p => `<option value="${p.name}">${p.name}</option>`).join('');
+      ['sPersonnel', 'lPersonnel', 'oPersonnel'].forEach(id => {
+        document.getElementById(id).innerHTML = options || '<option>Personel Yok</option>';
+      });
+    }
+
+    function addPersonnel() {
+      const name = document.getElementById('pName').value.trim();
+      const dept = document.getElementById('pDept').value.trim() || 'Genel';
+      if (!name) return;
+      db.personnel.push({ name, dept });
+      db.activities.unshift(`Yeni personel eklendi: ${name}`);
+      document.getElementById('pName').value = '';
+      document.getElementById('pDept').value = '';
+      closeModal('modalPersonnel');
+      saveData();
+      updateUI();
+    }
+
+    function addShift() {
+      const p = document.getElementById('sPersonnel').value;
+      const shift = document.getElementById('sShift').value;
+      if (!p || p === 'Personel Yok') return;
+      db.shifts.push({ name: p, shift });
+      db.activities.unshift(`Vardiya atandı: ${p} - ${shift}`);
+      closeModal('modalShift');
+      saveData();
+      updateUI();
+    }
+
+    function addLeave() {
+      const p = document.getElementById('lPersonnel').value;
+      const type = document.getElementById('lType').value.trim() || 'Yıllık İzin';
+      if (!p || p === 'Personel Yok') return;
+      db.leaves.push({ name: p, type, status: 'Onay Bekliyor' });
+      db.activities.unshift(`İzin talebi: ${p} (${type})`);
+      document.getElementById('lType').value = '';
+      closeModal('modalLeave');
+      saveData();
+      updateUI();
+    }
+
+    function addOvertime() {
+      const p = document.getElementById('oPersonnel').value;
+      const hours = parseFloat(document.getElementById('oHours').value) || 0;
+      if (!p || p === 'Personel Yok') return;
+      db.overtime.push({ name: p, hours });
+      db.activities.unshift(`Mesai eklendi: ${p} (${hours} Saat)`);
+      closeModal('modalOvertime');
+      saveData();
+      updateUI();
+    }
+
+    function exportData() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "vera_people_verileri.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    function updateUI() {
+      // Sayılar
+      document.getElementById('totalPersonnelVal').innerText = db.personnel.length;
+      document.getElementById('activePersonnelVal').innerText = db.personnel.length;
+      document.getElementById('pendingLeavesVal').innerText = db.leaves.length;
+      
+      const totalOt = db.overtime.reduce((acc, curr) => acc + curr.hours, 0);
+      document.getElementById('totalOvertimeVal').innerHTML = `${totalOt} <span style="font-size:14px;font-weight:normal">saat</span>`;
+
+      // Departman Özeti
+      const depts = {};
+      db.personnel.forEach(p => depts[p.dept] = (depts[p.dept] || 0) + 1);
+      const deptHtml = Object.keys(depts).map(d => `<div class="item-row"><span>${d}</span><b>${depts[d]} Personel</b></div>`).join('');
+      document.getElementById('deptSummaryList').innerHTML = deptHtml || 'Henüz veri girilmedi.';
+
+      // Son Hareketler
+      const actHtml = db.activities.slice(0, 3).map(a => `<div class="item-row" style="color:var(--text-sub)">${a}</div>`).join('');
+      document.getElementById('recentActivityList').innerHTML = actHtml || '<div style="font-size:12px;color:var(--text-sub)">Kayıt yok</div>';
+
+      // Listeler
+      document.getElementById('personnelList').innerHTML = db.personnel.map(p => `<div class="item-row"><span><b>${p.name}</b></span><span>${p.dept}</span></div>`).join('') || '<div style="padding:10px 0;font-size:12px;color:var(--text-sub)">Personel bulunmuyor.</div>';
+      document.getElementById('shiftList').innerHTML = db.shifts.map(s => `<div class="item-row"><span>${s.name}</span><span style="color:var(--green)">${s.shift}</span></div>`).join('') || '<div style="padding:10px 0;font-size:12px;color:var(--text-sub)">Vardiya ataması yok.</div>';
+      document.getElementById('leaveList').innerHTML = db.leaves.map(l => `<div class="item-row"><span>${l.name} (${l.type})</span><span style="color:var(--orange)">${l.status}</span></div>`).join('') || '<div style="padding:10px 0;font-size:12px;color:var(--text-sub)">İzin talebi yok.</div>';
+      document.getElementById('overtimeList').innerHTML = db.overtime.map(o => `<div class="item-row"><span>${o.name}</span><span>${o.hours} Saat</span></div>`).join('') || '<div style="padding:10px 0;font-size:12px;color:var(--text-sub)">Mesai kaydı yok.</div>';
+    }
+
+    // İlk Yükleme
+    updateUI();
+  </script>
+</body>
+</html>
