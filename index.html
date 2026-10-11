@@ -1,0 +1,1710 @@
+// AİDA - Site ve Apartman Yönetim Sistemi (JSBox) - v3
+// Veri: JSBox dosya sistemine (shared://aida_data.json) + WebView localStorage'a kaydedilir.
+
+function readStored() {
+  try {
+    const f = $file.read("shared://aida_data.json");
+    if (f && f.string) return f.string;
+  } catch (e) {}
+  try {
+    const c = $cache.get("aida_data");
+    if (typeof c === "string") return c;
+  } catch (e) {}
+  return null;
+}
+
+// ŞİFRE KURTARMA: Süper Admin e-postasını/şifresini unuttuysanız RESET_PASSWORD'a yeni bir şifre yazın
+// (RESET_EMAIL boş kalırsa Süper Admin hesabı sıfırlanır ve e-postası giriş ekranında görünür).
+// Uygulamayı çalıştırıp giriş yaptıktan sonra RESET_PASSWORD'ü tekrar boş ("") yapıp bir kez daha çalıştırın.
+const RESET_EMAIL = "";
+const RESET_PASSWORD = "";
+
+const stored = readStored();
+
+const html = String.raw`
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<style>
+:root{--bg:#f5f7fa;--card:#fff;--ink:#1c2b3a;--muted:#667789;--line:#e4eaf0;--blue:#2459d3;--blue-soft:#eaf0fd;--teal:#0e8f83;--red:#b8404d;--red-soft:#fceeee;--amber:#8a6208;--amber-soft:#fff4d9;--green:#137a58;--green-soft:#e2f4ec}
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.5}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:12px;padding:11px 16px;min-height:44px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer}
+button:active{opacity:.82}
+button.secondary{background:var(--blue-soft);color:var(--blue)}
+button.ghost{background:transparent;color:var(--muted)}
+button.danger{background:var(--red-soft);color:var(--red)}
+button.success{background:var(--teal);color:#fff}
+button.small{min-height:36px;padding:6px 13px;font-size:13px;border-radius:10px}
+input,select,textarea{width:100%;min-height:46px;padding:10px 13px;background:#fff;border:1px solid #d5dde6;border-radius:12px;color:var(--ink);font-size:16px}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#7b9ce3;box-shadow:0 0 0 3px rgba(36,89,211,.12)}
+input::placeholder,textarea::placeholder{color:#9aa8b6}
+input[type=file]{padding:9px;font-size:14px}
+textarea{min-height:150px;font:12px/1.5 ui-monospace,Menlo,monospace}
+label{display:block;margin:14px 0 6px;color:var(--muted);font-size:13px;font-weight:600}
+h1,h2,h3,h4{margin:0;letter-spacing:-.3px;color:var(--ink)}
+h2{font-size:22px}h3{font-size:16px}h4{font-size:14px;margin:12px 0 6px}
+.muted{color:var(--muted);font-size:13px;line-height:1.55}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card>h3{margin-bottom:10px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px}
+.cardhead h3{margin:0}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.full{width:100%;margin-top:12px}
+.stat{padding:13px 14px;background:#fff;border:1px solid var(--line);border-radius:14px}
+.stat small{display:block;color:var(--muted);font-size:12px}
+.stat strong{display:block;margin-top:3px;font-size:20px;overflow-wrap:anywhere}
+.grid3 .stat{padding:10px 11px}.grid3 .stat strong{font-size:15px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row.tap{cursor:pointer}
+.row .main{min-width:0;flex:1}
+.row .main b{display:block;font-weight:600}
+.badge{display:inline-block;padding:4px 10px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap}
+.paid{background:var(--green-soft);color:var(--green)}
+.unpaid{background:var(--red-soft);color:var(--red)}
+.partial{background:var(--amber-soft);color:var(--amber)}
+.none{background:#eef2f6;color:var(--muted)}
+.view{display:none}.view.active{display:block}
+.page{display:none}.page.active{display:block}
+.msg{color:var(--red);font-size:13px;margin-top:10px}
+.bar{height:8px;border-radius:99px;background:#e6edf5;overflow:hidden;margin-top:10px}
+.bar i{display:block;height:100%;background:var(--blue);border-radius:99px}
+.banner{padding:11px 14px;border-radius:12px;font-size:13px;margin-bottom:12px;background:var(--blue-soft);color:#264a8f}
+.banner.warn{background:var(--amber-soft);color:var(--amber)}
+.pagehead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.chips{display:flex;gap:6px;overflow-x:auto;margin:14px 0 12px;padding-bottom:2px}
+.chips button{min-height:36px;padding:6px 14px;border-radius:99px;background:#fff;color:var(--muted);border:1px solid var(--line);font-size:13px;white-space:nowrap}
+.chips button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+.menu-item{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;margin-bottom:8px;padding:14px 16px;background:#fff;color:var(--ink);border:1px solid var(--line);font-weight:600}
+.menu-item span:last-child{color:var(--muted);font-size:18px}
+.legal{display:flex;gap:6px;justify-content:center;margin-top:8px}
+details{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:0 14px}
+details[open]{padding-bottom:14px}
+summary{padding:13px 0;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between}
+summary::-webkit-details-marker{display:none}
+summary:after{content:'+';color:var(--muted);font-size:18px}
+details[open] summary:after{content:'−'}
+.sheethead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.tabs{display:flex;gap:6px;padding:5px;background:#eef2f6;border-radius:14px;margin:14px 0 4px}
+.tabs button{flex:1;min-height:40px;background:transparent;color:var(--muted)}
+.tabs button:not(.secondary){background:#fff;color:var(--blue);box-shadow:0 1px 4px rgba(20,40,70,.12)}
+.narrow{max-width:460px;margin:0 auto;padding:28px 14px}
+.narrow .card{padding:24px;border-radius:20px}
+.logo{font-size:26px;font-weight:800;letter-spacing:-.8px;color:var(--blue)}
+.kicker{color:#287b83;font-size:11px;font-weight:800;letter-spacing:1.3px}
+#auth,#setup,#pending,#siteSetup,#locked{min-height:100vh;background:radial-gradient(ellipse at 50% 0%,#e8f0fc 0,transparent 55%),var(--bg)}
+/* ---- modal / toast ---- */
+.modal{position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(17,34,51,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+.modal .card{width:100%;max-width:520px;margin:0;max-height:90vh;overflow:auto;border-radius:22px 22px 0 0;padding:20px 18px calc(20px + env(safe-area-inset-bottom))}
+@media(min-width:600px){.modal{align-items:center;padding:16px}.modal .card{border-radius:20px}}
+#toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#1c3349;color:#fff;font-weight:600;font-size:14px;padding:11px 16px;border-radius:12px;z-index:60;display:none;max-width:90%;text-align:center}
+/* ---- uygulama ---- */
+#app{min-height:100vh;padding-bottom:calc(86px + env(safe-area-inset-bottom))}
+.apphead{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px;background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+.apphead .t{font-weight:800;font-size:17px;letter-spacing:-.3px}
+.apphead .s{color:var(--muted);font-size:12px}
+.content{max-width:760px;margin:0 auto;padding:16px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;gap:2px;background:#fff;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;min-height:52px;padding:6px 2px;background:transparent;color:var(--muted);font-size:11px;font-weight:600;border-radius:12px}
+.tabbar button i{font-style:normal;font-size:19px;line-height:1.1}
+.tabbar button.active{background:var(--blue-soft);color:var(--blue)}
+/* ---- tanıtım sayfası ---- */
+#landing{min-height:100vh}
+.site-header{position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px max(18px,calc((100vw - 1160px)/2));background:rgba(255,255,255,.95);border-bottom:1px solid var(--line);backdrop-filter:blur(12px)}
+.brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;letter-spacing:-.5px;cursor:pointer}
+.brand small{display:block;color:var(--muted);font-size:9px;font-weight:600;letter-spacing:1.2px}
+.brand-mark{width:36px;height:36px;display:grid;place-items:center;border-radius:12px;background:linear-gradient(140deg,#1e4cbd,#0e9488);color:#fff;font-weight:800}
+.landing-nav{display:flex;gap:22px}
+.landing-nav button{background:transparent;color:#526478;min-height:0;padding:8px 0;font-size:13px}
+.header-actions{display:flex;gap:8px}
+.land-btn{padding:11px 17px;border-radius:11px;background:var(--blue);color:#fff;font-size:13px;font-weight:700}
+.land-btn-ghost{padding:10px 15px;border-radius:11px;background:#fff;color:var(--ink);border:1px solid var(--line);font-size:13px;font-weight:700}
+.landing-shell{max-width:1160px;margin:0 auto;padding:0 22px}
+.landing-hero{display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:38px;padding:58px 0 50px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border:1px solid #dce8f5;border-radius:99px;background:#fff;color:#315a89;font-size:11px;font-weight:700;letter-spacing:.8px}
+.eyebrow:before{content:"";width:7px;height:7px;border-radius:50%;background:#0eaa91}
+.hero-title{margin:18px 0 14px;font-size:clamp(34px,5vw,56px);line-height:1.07;letter-spacing:-2.4px;font-weight:800}
+.hero-title span{color:var(--blue)}
+.hero-copy>p{max-width:540px;margin:0;color:var(--muted);font-size:16px;line-height:1.7}
+.hero-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:24px}
+.hero-note{display:flex;align-items:center;gap:9px;margin-top:18px;color:var(--muted);font-size:13px}
+.hero-note-mark{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#e3f5f1;color:#087f71;font-weight:800;font-size:12px}
+.preview-card{max-width:430px;margin:0 auto;padding:16px;border:1px solid var(--line);border-radius:22px;background:#fff;box-shadow:0 22px 60px rgba(28,54,85,.12)}
+.preview-top{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid #edf1f5;font-size:12px;font-weight:700}
+.preview-label{color:#8291a2;font-size:11px;font-weight:500}
+.preview-dot{display:inline-block;width:8px;height:8px;margin-right:5px;border-radius:50%;background:#20b486}
+.preview-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0 6px}
+.preview-stat{padding:12px;border-radius:12px;background:#f5f8fc}
+.preview-stat span{display:block;color:#76879a;font-size:11px}
+.preview-stat strong{display:block;margin-top:5px;font-size:16px}
+.preview-progress{height:6px;margin-top:9px;border-radius:9px;background:#e2eaf3;overflow:hidden}
+.preview-progress i{display:block;width:72%;height:100%;background:linear-gradient(90deg,#285bc9,#18a88d)}
+.preview-row{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid #edf1f5;color:#506377;font-size:12px}
+.preview-pill{padding:4px 9px;border-radius:99px;background:var(--green-soft);color:var(--green);font-size:11px;font-weight:700}
+.preview-caption{margin-top:10px;color:#8794a1;font-size:11px;text-align:right}
+.landing-section{padding:42px 0}
+.section-heading{max-width:640px;margin:0 auto 26px;text-align:center}
+.section-heading h2{margin:10px 0 8px;font-size:clamp(25px,3vw,34px);line-height:1.2;letter-spacing:-1px}
+.section-heading p{margin:0;color:var(--muted);font-size:15px;line-height:1.65}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.feature-card{padding:20px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.feature-icon{display:grid;place-items:center;width:38px;height:38px;margin-bottom:14px;border-radius:12px;background:#eaf1ff;color:#315bc3;font-size:16px;font-weight:800}
+.feature-card:nth-child(3n+2) .feature-icon{background:#e4f6f2;color:#078473}
+.feature-card h3{margin:0 0 6px;font-size:15px}
+.feature-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+.steps-band{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding:22px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(120deg,#fff,#f0f6fb)}
+.step-item{display:flex;gap:12px;align-items:flex-start}
+.step-no{display:grid;place-items:center;flex:0 0 32px;height:32px;border-radius:10px;background:#e5eefc;color:#2858bd;font-size:12px;font-weight:800}
+.step-item strong{display:block;margin:2px 0 3px;font-size:14px}
+.step-item span{display:block;color:var(--muted);font-size:13px;line-height:1.55}
+.pricing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:800px;margin:0 auto}
+.price-card{padding:24px;border:1px solid var(--line);border-radius:18px;background:#fff}
+.price-card.featured{border-color:#83a5ee;box-shadow:0 12px 30px rgba(36,89,211,.1)}
+.price-topline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.price-card h3{margin:0}
+.price-tag{padding:5px 10px;border-radius:99px;background:#edf3ff;color:#315bc3;font-size:11px;font-weight:700}
+.price-value{margin:14px 0 2px;font-size:30px;font-weight:800;letter-spacing:-1px}
+.price-period{color:var(--muted);font-size:12px}
+.price-list{list-style:none;padding:12px 0;margin:10px 0 6px;border-top:1px solid #edf1f5}
+.price-list li{padding:5px 0;color:#53677b;font-size:13px}
+.price-list li:before{content:"✓";margin-right:8px;color:#11957e;font-weight:800}
+.price-card .land-btn{width:100%;margin-top:8px}
+.faq-list{max-width:760px;margin:0 auto}
+.faq-item{margin:8px 0;border:1px solid var(--line);border-radius:13px;background:#fff;overflow:hidden}
+.faq-question{display:flex;width:100%;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;border-radius:0;background:#fff;color:var(--ink);text-align:left;font-size:14px;font-weight:700}
+.faq-question span:last-child{color:#315bc3;font-size:18px}
+.faq-answer{display:none;padding:0 16px 15px;color:var(--muted);font-size:13px;line-height:1.7}
+.contact-panel{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:24px;border-radius:18px;background:linear-gradient(115deg,#162c45,#214d79);color:#fff}
+.contact-panel h2{margin:0 0 6px;font-size:21px;color:#fff}
+.contact-panel p{margin:0;color:#d4e0eb;font-size:13px;line-height:1.6}
+.contact-panel .land-btn{flex:0 0 auto;background:#fff;color:#214d79}
+.landing-footer{margin-top:26px;background:#13283e;color:#d9e3ec}
+.footer-inner{max-width:1160px;margin:auto;padding:26px 22px 18px}
+.footer-main{display:flex;justify-content:space-between;align-items:flex-start;gap:24px}
+.footer-brand{color:#fff;font-size:18px;font-weight:800}
+.footer-brand small{display:block;margin-top:5px;color:#b3c2d0;font-size:12px;font-weight:400}
+.footer-links{display:flex;flex-wrap:wrap;gap:4px 18px;justify-content:flex-end}
+.footer-links button{min-height:36px;padding:4px 0;background:transparent;color:#d9e3ec;font-size:13px;font-weight:500}
+.footer-bottom{display:flex;justify-content:space-between;gap:10px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,.14);color:#aebdca;font-size:12px}
+@media(max-width:760px){.landing-nav{display:none}.landing-hero{grid-template-columns:1fr;gap:28px;padding:38px 0 32px}.feature-grid{grid-template-columns:repeat(2,1fr)}.steps-band{grid-template-columns:1fr}}
+@media(max-width:480px){.site-header{padding:10px 14px}.header-actions{gap:5px}.land-btn,.land-btn-ghost{padding:9px 11px;font-size:12px}.landing-shell{padding:0 16px}.hero-title{font-size:36px;letter-spacing:-1.6px}.hero-copy>p{font-size:15px}.feature-grid{grid-template-columns:1fr}.pricing-grid{grid-template-columns:1fr}.contact-panel{flex-direction:column;align-items:flex-start}.footer-main,.footer-bottom{flex-direction:column}.footer-links{justify-content:flex-start}.narrow{padding:18px 10px}.narrow .card{padding:20px}}
+</style>
+</head>
+<body>
+<div id="toast"></div>
+<div id="modal" class="modal"><div class="card" id="modalBox"></div></div>
+
+<!-- TANITIM SAYFASI -->
+<div id="landing" class="view">
+ <header class="site-header">
+  <div class="brand" onclick="A.scrollLanding('landingTop')"><span class="brand-mark">A</span><span>AİDA<small>SİTE YÖNETİMİ</small></span></div>
+  <nav class="landing-nav" aria-label="Ana sayfa bağlantıları">
+   <button onclick="A.scrollLanding('landingFeatures')">Özellikler</button>
+   <button onclick="A.scrollLanding('landingHow')">Nasıl çalışır?</button>
+   <button onclick="A.scrollLanding('landingPricing')">Fiyatlandırma</button>
+   <button onclick="A.scrollLanding('landingFaq')">Sık sorulanlar</button>
+  </nav>
+  <div class="header-actions">
+   <button class="land-btn-ghost" onclick="A.goAuth('login')">Giriş yap</button>
+   <button class="land-btn" onclick="A.goAuth('register')">Ücretsiz dene</button>
+  </div>
+ </header>
+ <div class="landing-shell">
+  <section class="landing-hero" id="landingTop">
+   <div class="hero-copy">
+    <span class="eyebrow">SİTE YÖNETİMİNDE DAHA DÜZENLİ BİR YOL</span>
+    <h1 class="hero-title">Apartman yönetimi,<br><span>tek bir yerde.</span></h1>
+    <p>Daire kayıtlarını, aidatları ve giderleri düzenli biçimde takip edin. AİDA, site yönetiminin temel mali işlerini anlaşılır tek bir panelde toplar.</p>
+    <div class="hero-actions">
+     <button class="land-btn" onclick="A.goAuth('register')">Ücretsiz denemeyi başlat →</button>
+     <button class="land-btn-ghost" onclick="A.scrollLanding('landingFeatures')">Özellikleri keşfet</button>
+    </div>
+    <div class="hero-note"><span class="hero-note-mark">✓</span><span><b id="landTrial"></b> ücretsiz deneme · Kart bilgisi gerekmez</span></div>
+   </div>
+   <div class="hero-visual">
+    <div class="preview-card">
+     <div class="preview-top"><span>AİDA <span class="preview-label">· Yönetim paneli</span></span><span class="preview-label"><i class="preview-dot"></i>Örnek görünüm</span></div>
+     <div class="preview-stats">
+      <div class="preview-stat"><span>Tahsilat durumu</span><strong>Takipte</strong><div class="preview-progress"><i></i></div></div>
+      <div class="preview-stat"><span>Yönetim araçları</span><strong>Bir arada</strong><span>Daire · Aidat · Rapor</span></div>
+     </div>
+     <div class="preview-row"><span>Aidat ve ödeme kayıtları</span><span class="preview-pill">Düzenli</span></div>
+     <div class="preview-row"><span>Daire ve mali kayıtlar</span><span class="preview-pill">Tek yerde</span></div>
+     <div class="preview-caption">Ürün önizlemesi · Gerçek kullanıcı verisi içermez</div>
+    </div>
+   </div>
+  </section>
+
+  <section class="landing-section" id="landingFeatures">
+   <div class="section-heading"><span class="kicker">YÖNETİMİN TEMEL İŞLERİ</span><h2>Günlük takip, daha az dağınıklık</h2><p>Daire ve mali yönetim için gereken temel işlemler tek bir panelde.</p></div>
+   <div class="feature-grid">
+    <article class="feature-card"><div class="feature-icon">₺</div><h3>Aidat ve ödeme takibi</h3><p>Daire bazında borçları, kısmi ödemeleri ve ödeme geçmişini görüntüleyin.</p></article>
+    <article class="feature-card"><div class="feature-icon">↗</div><h3>Gider ve kasa kayıtları</h3><p>Gelir ve gider hareketlerini kayıt altına alın, kasa durumunu takip edin.</p></article>
+    <article class="feature-card"><div class="feature-icon">!</div><h3>Borç takibi</h3><p>Gecikmiş aidatları ve daire bazındaki toplam borçları görün.</p></article>
+    <article class="feature-card"><div class="feature-icon">▤</div><h3>Makbuz ve fiş arşivi</h3><p>Tahsilat makbuzlarını ve gider fişlerini aylara göre görüntüleyin; fotoğraf veya PDF ekleyin.</p></article>
+    <article class="feature-card"><div class="feature-icon">⌂</div><h3>Daire yönetimi</h3><p>Daire numaralarını, aidat durumunu ve geçmiş tahsilatları düzenleyin.</p></article>
+    <article class="feature-card"><div class="feature-icon">⚙</div><h3>Site ayarları</h3><p>Site adını, aylık aidatı ve kasa açılış bakiyesini yönetin.</p></article>
+   </div>
+  </section>
+
+  <section class="landing-section" id="landingHow">
+   <div class="section-heading"><span class="kicker">BAŞLAMAK KOLAY</span><h2>Üç adımda kullanmaya başlayın</h2><p>İlk kurulumdan günlük takibe kadar temel akış sade tutuldu.</p></div>
+   <div class="steps-band">
+    <div class="step-item"><span class="step-no">01</span><div><strong>Başvurunuzu yapın</strong><span>Yönetici hesabınızı oluşturun ve ücretsiz denemeyi başlatın.</span></div></div>
+    <div class="step-item"><span class="step-no">02</span><div><strong>Site adını belirleyin</strong><span>İlk girişte site veya apartman adını girip temel ayarları tamamlayın.</span></div></div>
+    <div class="step-item"><span class="step-no">03</span><div><strong>Takibi tek yerden yapın</strong><span>Daire, tahsilat, gider ve rapor işlemlerini panelden yönetin.</span></div></div>
+   </div>
+  </section>
+
+  <section class="landing-section" id="landingPricing">
+   <div class="section-heading"><span class="kicker">AÇIK VE ANLAŞILIR</span><h2>Önce deneyin, sonra karar verin</h2><p>Ücretsiz deneme süresi ve güncel ücret bilgisi aşağıda yer alır.</p></div>
+   <div class="pricing-grid">
+    <article class="price-card">
+     <div class="price-topline"><h3>Ücretsiz deneme</h3><span class="price-tag">Başlangıç</span></div>
+     <div class="price-value" id="landTrial2"></div>
+     <div class="price-period">Deneme süresince</div>
+     <ul class="price-list"><li>Uygulama özelliklerini deneyin</li><li>Kart bilgisi istenmez</li><li>Başvuru onayından sonra hesabınız açılır</li></ul>
+     <button class="land-btn" onclick="A.goAuth('register')">Ücretsiz başvur</button>
+    </article>
+    <article class="price-card featured">
+     <div class="price-topline"><h3>Ücretli sürüm</h3><span class="price-tag">Yönetim için</span></div>
+     <div class="price-value" id="landPrice"></div>
+     <div class="price-period">Yönetici hesabı başına</div>
+     <ul class="price-list"><li>Deneme sonrası devam edin</li><li>Süre ve yenileme tarihi hesabınızda görünür</li><li>Ödeme ve geçiş için bizimle iletişime geçin</li></ul>
+     <button class="land-btn" onclick="A.contact()">Fiyat ve bilgi alın</button>
+    </article>
+   </div>
+  </section>
+
+  <section class="landing-section" id="landingFaq">
+   <div class="section-heading"><span class="kicker">MERAK EDİLENLER</span><h2>Sık sorulan sorular</h2><p>Başlangıç ve kullanım hakkında kısa yanıtlar.</p></div>
+   <div class="faq-list">
+    <div class="faq-item"><button class="faq-question" onclick="A.toggleFaq('faqTrial')"><span>Ücretsiz deneme ne kadar sürüyor?</span><span id="faqTrialMark">+</span></button><div class="faq-answer" id="faqTrial">Ücretsiz deneme süresi <span class="faq-trial-value"></span> olarak uygulanır ve yönetici hesabınız onaylandığında başlar.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="A.toggleFaq('faqManager')"><span>Yönetici hesabı nasıl etkinleşir?</span><span id="faqManagerMark">+</span></button><div class="faq-answer" id="faqManager">Yönetici başvurusu onaylanır. Onaydan sonra ilk girişte site adını belirleyerek panelinizi açarsınız.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="A.toggleFaq('faqData')"><span>Hangi işlemleri uygulamadan takip edebilirim?</span><span id="faqDataMark">+</span></button><div class="faq-answer" id="faqData">Daireler, aidat ve tahsilat kayıtları, borçlar, giderler, kasa, ay bazlı makbuz/fiş arşivi ve rapor/yedek işlemleri mevcut sürümde yer alır.</div></div>
+    <div class="faq-item"><button class="faq-question" onclick="A.toggleFaq('faqSupport')"><span>Destek veya ücretli sürüm için kime ulaşabilirim?</span><span id="faqSupportMark">+</span></button><div class="faq-answer" id="faqSupport">Sayfadaki "İletişim" düğmesinden e-posta veya WhatsApp ile ulaşabilirsiniz.</div></div>
+   </div>
+  </section>
+
+  <section class="landing-section">
+   <div class="contact-panel"><div><h2>Yönetimi daha düzenli hale getirin.</h2><p>Ücretsiz denemeyi başlatın veya uygulama hakkında bilgi almak için bize ulaşın.<br><span id="landContact"></span></p></div><button class="land-btn" onclick="A.contact()">İletişime geç →</button></div>
+  </section>
+ </div>
+ <footer class="landing-footer">
+  <div class="footer-inner">
+   <div class="footer-main">
+    <div class="footer-brand">AİDA<small>Site ve apartman yönetimini sadeleştirmek için.</small></div>
+    <div class="footer-links">
+     <button onclick="A.contact()">İletişim</button>
+     <button onclick="A.showPrivacy()">KVKK aydınlatma metni</button>
+     <button onclick="A.showTerms()">Kullanım koşulları</button>
+     <button onclick="A.goAuth('login')">Hesap girişi</button>
+    </div>
+   </div>
+   <div class="footer-bottom"><span>© <span id="landYear"></span> AİDA · Tüm hakları saklıdır.</span><span id="landLegal"></span></div>
+  </div>
+ </footer>
+</div>
+
+<!-- GİRİŞ / BAŞVURU -->
+<div id="auth" class="view">
+ <div class="narrow">
+  <div class="card">
+   <div class="logo">AİDA</div>
+   <div class="tabs">
+    <button id="tabLogin" onclick="A.authTab('login')">Giriş</button>
+    <button id="tabReg" class="secondary" onclick="A.authTab('register')">Yönetici başvurusu</button>
+   </div>
+   <div id="formLogin">
+    <label>E-posta</label><input id="lEmail" type="email" placeholder="ornek@mail.com" autocomplete="username">
+    <label>Şifre</label><input id="lPass" type="password" placeholder="Şifre" autocomplete="current-password">
+    <button class="ghost small" style="margin-top:6px" onclick="A.togglePw('lPass')">Şifreyi göster / gizle</button>
+    <button class="full" onclick="A.login()">Giriş yap</button>
+    <div class="muted" style="margin-top:12px">Şifrenizi unuttuysanız sistem yöneticisiyle iletişime geçin.</div>
+   </div>
+   <div id="formReg" style="display:none">
+    <label>Yönetici adı soyadı</label><input id="rName" placeholder="Ad soyad">
+    <label>E-posta</label><input id="rEmail" type="email" placeholder="ornek@mail.com">
+    <label>Şifre (en az 6 karakter)</label><input id="rPass" type="password" placeholder="Şifre belirleyin">
+    <label>Şifre tekrar</label><input id="rPass2" type="password" placeholder="Şifreyi tekrar yazın">
+    <button class="ghost small" style="margin-top:6px" onclick="A.togglePw('rPass','rPass2')">Şifreleri göster / gizle</button>
+    <button class="full" onclick="A.register()">Yönetici başvurusu gönder</button>
+    <div class="muted" style="margin-top:12px">Başvuru onaylandıktan sonra yönetici hesabınız etkinleşir.</div>
+   </div>
+   <div id="authMsg" class="msg"></div>
+   <div id="authDiag" class="muted"></div>
+   <button class="secondary full" onclick="A.show('landing')">Ana sayfaya dön</button>
+  </div>
+ </div>
+</div>
+
+<!-- İLK KURULUM -->
+<div id="setup" class="view">
+ <div class="narrow">
+  <div class="card">
+   <div class="logo">AİDA</div>
+   <h3 style="margin-top:14px">İlk kurulum: Süper Admin hesabı</h3>
+   <p class="muted">Bu hesap yönetici başvurularını, site hesaplarını ve abonelikleri yönetir. Şifrenizi güvenli bir yere not edin; unutulursa sıfırlayacak başka bir süper admin yoktur.</p>
+   <label>Ad soyad</label><input id="sName" placeholder="Ad soyad">
+   <label>E-posta</label><input id="sEmail" type="email" placeholder="ornek@mail.com">
+   <label>Şifre (en az 6 karakter)</label><input id="sPass" type="password">
+   <label>Şifre tekrar</label><input id="sPass2" type="password">
+   <button class="ghost small" style="margin-top:6px" onclick="A.togglePw('sPass','sPass2')">Şifreleri göster / gizle</button>
+   <button class="full" onclick="A.setup()">Süper Admin oluştur</button>
+   <div id="setupMsg" class="msg"></div>
+  </div>
+ </div>
+</div>
+
+<!-- ONAY BEKLEYEN -->
+<div id="pending" class="view">
+ <div class="narrow">
+  <div class="card">
+   <div class="logo">AİDA</div>
+   <h3 style="margin-top:14px">Yönetici başvurunuz alındı</h3>
+   <p class="muted" id="pendingText"></p>
+   <p class="muted">Başvurunuz onaylandıktan sonra yönetici hesabınız açılır. Ardından ilk girişte site adınızı belirlemeniz istenir.</p>
+   <button class="secondary full" onclick="A.enter()">Durumu yenile</button>
+   <button class="ghost full" onclick="A.logout()">Çıkış</button>
+  </div>
+ </div>
+</div>
+
+<!-- İLK SİTE KURULUMU -->
+<div id="siteSetup" class="view">
+ <div class="narrow">
+  <div class="card">
+   <div class="logo">AİDA</div>
+   <div class="kicker" style="margin-top:14px">İLK KURULUM</div>
+   <h2 style="margin:8px 0">Site adınızı belirleyin</h2>
+   <p class="muted">Yönetim panelinizi açmadan önce site veya apartman adını girin. Bu ad makbuzlarda ve raporlarda kullanılır.</p>
+   <label for="firstSiteName">Site / apartman adı</label>
+   <input id="firstSiteName" maxlength="80" placeholder="Örn. Güneş Sitesi">
+   <div id="siteSetupMsg" class="msg"></div>
+   <button class="full" onclick="A.saveFirstSite()">Devam et</button>
+   <button class="ghost full" onclick="A.logout()">Çıkış</button>
+  </div>
+ </div>
+</div>
+
+<!-- SÜRESİ DOLAN -->
+<div id="locked" class="view">
+ <div class="narrow">
+  <div class="card">
+   <div class="logo">AİDA</div>
+   <h3 style="margin-top:14px">Erişim kapalı</h3>
+   <p class="muted" id="lockedMsg"></p>
+   <p class="muted" id="lockedContact"></p>
+   <button class="secondary full" onclick="A.enter()">Durumu yenile</button>
+   <button class="ghost full" onclick="A.logout()">Çıkış</button>
+  </div>
+ </div>
+</div>
+
+<!-- UYGULAMA -->
+<div id="app" class="view">
+ <header class="apphead">
+  <div><div class="t" id="appTitle">AİDA</div><div class="s" id="who"></div></div>
+  <span class="badge none" id="appPlan" style="display:none"></span>
+ </header>
+ <main class="content">
+  <div id="planBanner"></div>
+
+  <!-- ===== Yönetici: Özet ===== -->
+  <section id="p-home" class="page">
+   <div class="grid" id="stats"></div>
+   <div class="card" id="monthCard" style="margin-top:12px"></div>
+   <div class="card">
+    <div class="cardhead"><h3>Borçlu daireler</h3><button class="ghost small" onclick="A.tab('pay')">Aidat ›</button></div>
+    <div id="debtList"></div>
+   </div>
+   <div class="grid">
+    <button onclick="A.tab('pay')">Ödeme ekle</button>
+    <button class="secondary" onclick="A.openExpense()">Gider ekle</button>
+   </div>
+  </section>
+
+  <!-- ===== Yönetici: Aidat ===== -->
+  <section id="p-pay" class="page">
+   <div class="pagehead"><h2>Aidat</h2></div>
+   <select id="payMonth" onchange="A.refresh()" aria-label="Ay"></select>
+   <div class="card" id="paySummary" style="margin-top:12px"></div>
+   <div class="chips" id="payChips"></div>
+   <div class="card" id="payList"></div>
+   <button class="secondary full" onclick="A.createDues()">Bu ay için tüm dairelere aidat oluştur</button>
+  </section>
+
+  <!-- ===== Yönetici: Gider ===== -->
+  <section id="p-exp" class="page">
+   <div class="pagehead"><h2>Giderler</h2><button class="small" onclick="A.openExpense()">＋ Gider ekle</button></div>
+   <div class="grid" id="expSummary" style="margin-bottom:12px"></div>
+   <div class="card" id="expenses"></div>
+  </section>
+
+  <!-- ===== Yönetici: Daireler ===== -->
+  <section id="p-flats" class="page">
+   <div class="pagehead"><h2>Daireler</h2><button class="small" onclick="A.openFlat()">＋ Daire ekle</button></div>
+   <div class="muted" id="flatLimitInfo" style="margin:-6px 0 12px"></div>
+   <div class="card" id="flatList"></div>
+  </section>
+
+  <!-- ===== Diğer / Hesap ===== -->
+  <section id="p-more" class="page">
+   <h2 style="margin-bottom:14px">Diğer</h2>
+   <div class="card" id="accountCard"></div>
+   <div id="moreMenu"></div>
+  </section>
+
+  <!-- ===== Site ayarları ===== -->
+  <section id="p-site" class="page">
+   <button class="ghost small" onclick="A.tab('more')">‹ Diğer</button>
+   <h2 style="margin:6px 0 14px">Site ayarları</h2>
+   <div class="card">
+    <label style="margin-top:0">Site / apartman adı</label><input id="setName">
+    <label>Varsayılan aylık aidat (₺)</label><input id="setDues" type="number" inputmode="decimal" min="0" step="0.01">
+    <label>Kasa açılış bakiyesi (₺)</label><input id="setOpen" type="number" inputmode="decimal" step="0.01">
+    <button class="full" onclick="A.saveSite()">Kaydet</button>
+    <div class="muted" style="margin-top:10px">Yeni aidat tutarı yalnızca bundan sonra oluşturulan kayıtlara uygulanır.</div>
+   </div>
+  </section>
+
+  <!-- ===== Makbuz arşivi ===== -->
+  <section id="p-receipts" class="page">
+   <button class="ghost small" onclick="A.tab('more')">‹ Diğer</button>
+   <h2 style="margin:6px 0 4px">Makbuz ve fiş arşivi</h2>
+   <p class="muted" style="margin:0 0 12px">Tahsilat makbuzları ödeme kayıtlarından, gider fişleri gider kayıtlarından otomatik listelenir.</p>
+   <select id="archiveMonth" onchange="A.archiveMonthChanged()" aria-label="Ay"></select>
+   <div class="grid3" id="archiveStats" style="margin:12px 0"></div>
+   <div class="card"><h3 id="archiveHeading">Aylık kayıtlar</h3><div id="archiveList"></div></div>
+  </section>
+
+  <!-- ===== Rapor / Yedek ===== -->
+  <section id="p-backup" class="page">
+   <button class="ghost small" id="bkBack" onclick="A.tab('more')">‹ Diğer</button>
+   <h2 id="bkTitle" style="margin:6px 0 14px">Rapor ve yedek</h2>
+   <div class="card">
+    <p class="muted" id="bkInfo" style="margin-top:0"></p>
+    <div class="grid" id="bkButtons"></div>
+    <label>Çıktı / yüklenecek yedek</label>
+    <textarea id="bkText" placeholder="CSV veya yedek metni burada görünür. Geri yüklemek için yedeği buraya yapıştırın."></textarea>
+    <div class="grid" style="margin-top:10px">
+     <button class="secondary" onclick="A.bkCopy()">Kopyala</button>
+     <button class="danger" onclick="A.bkRestore()">Yedekten yükle</button>
+    </div>
+   </div>
+  </section>
+
+  <!-- ===== Süper Admin: Yöneticiler ===== -->
+  <section id="p-members" class="page">
+   <div class="grid" id="memStats"></div>
+   <div class="card" id="pendCard" style="margin-top:12px"><h3>Onay bekleyen başvurular</h3><div id="memberList"></div></div>
+   <div class="card">
+    <h3>Yöneticiler</h3>
+    <select id="managerSelect" onchange="A.selectManager(this.value)" aria-label="Yönetici"></select>
+    <div id="managerDetail" style="margin-top:12px"></div>
+   </div>
+  </section>
+
+  <!-- ===== Süper Admin: Ayarlar ===== -->
+  <section id="p-settings" class="page">
+   <h2 style="margin-bottom:14px">Sistem ayarları</h2>
+   <div class="card">
+    <h3>Abonelik</h3>
+    <label style="margin-top:0">Deneme süresi (gün)</label><input id="sTrial" type="number" inputmode="numeric" min="1">
+    <label>Ücretli sürüm fiyatı (₺)</label><input id="sPrice" type="number" inputmode="decimal" min="0">
+    <label>Ücret dönemi (ay)</label><input id="sBilling" type="number" inputmode="numeric" min="1">
+   </div>
+   <div class="card">
+    <h3>İletişim ve yasal bilgiler</h3>
+    <label style="margin-top:0">İletişim (e-posta ve/veya WhatsApp numarası)</label><input id="sContact" placeholder="destek@site.com · 05xx xxx xx xx">
+    <label>Firma / veri sorumlusu unvanı</label><input id="sCompany" placeholder="Örn. Firma Adı">
+    <label>Adres</label><input id="sAddress" placeholder="Açık adres">
+    <div class="muted" style="margin-top:8px">Bu bilgiler tanıtım sayfasında, iletişim penceresinde ve KVKK metninde kullanılır.</div>
+   </div>
+   <button class="full" onclick="A.saveSettings()">Ayarları kaydet</button>
+  </section>
+ </main>
+ <nav class="tabbar" id="tabbar"></nav>
+</div>
+
+<script>/*__INIT__*/</script>
+<script>
+(function(){
+'use strict';
+var MONTHS=['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+var ROLE_LABEL={beklemede:'Yönetici başvurusu',yonetici:'Yönetici',superadmin:'Süper Admin'};
+var NAVS={
+ yonetici:[['home','Özet','⌂'],['pay','Aidat','₺'],['exp','Gider','↗'],['flats','Daire','▤'],['more','Diğer','⋯']],
+ superadmin:[['members','Yönetici','☰'],['settings','Ayarlar','⚙'],['backup','Yedek','⇩'],['more','Hesap','⋯']]
+};
+var NL='\n';
+var A={};window.A=A;
+var resetNote='';
+var st={flatId:'',filter:'all',managerId:''};
+var pendingPaymentAttachment=null,pendingExpenseAttachment=null;
+var MAX_ATTACHMENT_CHARS=1100000,MAX_SITE_ATTACHMENT_CHARS=3500000;
+var db=load(),me=null,fails=0,lockUntil=0;
+
+/* ---------- yardımcılar ---------- */
+function el(id){return document.getElementById(id);}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+function money(n){return '₺'+Number(n||0).toLocaleString('tr-TR',{maximumFractionDigits:2});}
+function pad(n){return n<10?'0'+n:''+n;}
+function toStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function today(){return toStr(new Date());}
+function parseDate(s){var p=String(s).split('-');return new Date(Number(p[0]),Number(p[1])-1,Number(p[2]));}
+function fmtDate(s){if(!s)return '-';var p=String(s).split('-');return p[2]+'.'+p[1]+'.'+p[0];}
+function addDays(s,n){var d=parseDate(s);d.setDate(d.getDate()+n);return toStr(d);}
+function addMonths(s,n){var d=parseDate(s);var day=d.getDate();d.setDate(1);d.setMonth(d.getMonth()+n);var last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();d.setDate(Math.min(day,last));return toStr(d);}
+function daysBetween(a,b){return Math.round((parseDate(b)-parseDate(a))/86400000);}
+function monthKey(d){return d.getFullYear()+'-'+pad(d.getMonth()+1);}
+function monthLabel(k){var p=String(k).split('-');return MONTHS[Number(p[1])-1]+' '+p[0];}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,8);}
+function normEmail(s){return String(s||'').trim().replace(/İ/g,'i').toLowerCase();}
+function validEmail(s){return /^[^ @]+@[^ @]+\.[^ @]+$/.test(s);}
+function round2(n){return Math.round(n*100)/100;}
+function setMsg(id,t){el(id).textContent=t;}
+function enc(s){return encodeURIComponent(s);}
+
+/* ---------- SHA-256 + şifre ---------- */
+function sha256(str){
+ var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+ var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];
+ var bytes=new TextEncoder().encode(str);
+ var l=bytes.length,bitLen=l*8,total=((l+9+63)>>6)<<6;
+ var buf=new Uint8Array(total);buf.set(bytes);buf[l]=0x80;
+ var dv=new DataView(buf.buffer);
+ dv.setUint32(total-8,Math.floor(bitLen/4294967296));dv.setUint32(total-4,bitLen>>>0);
+ var w=new Uint32Array(64);
+ function rotr(x,n){return (x>>>n)|(x<<(32-n));}
+ for(var off=0;off<total;off+=64){
+  var i;
+  for(i=0;i<16;i++)w[i]=dv.getUint32(off+i*4);
+  for(i=16;i<64;i++){
+   var x=w[i-15],y=w[i-2];
+   var s0=rotr(x,7)^rotr(x,18)^(x>>>3);
+   var s1=rotr(y,17)^rotr(y,19)^(y>>>10);
+   w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
+  }
+  var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];
+  for(i=0;i<64;i++){
+   var S1=rotr(e,6)^rotr(e,11)^rotr(e,25);
+   var ch=(e&f)^(~e&g);
+   var t1=(h+S1+ch+K[i]+w[i])>>>0;
+   var S0=rotr(a,2)^rotr(a,13)^rotr(a,22);
+   var maj=(a&b)^(a&c)^(b&c);
+   var t2=(S0+maj)>>>0;
+   h=g;g=f;f=e;e=(d+t1)>>>0;d=c;c=b;b=a;a=(t1+t2)>>>0;
+  }
+  H[0]=(H[0]+a)>>>0;H[1]=(H[1]+b)>>>0;H[2]=(H[2]+c)>>>0;H[3]=(H[3]+d)>>>0;
+  H[4]=(H[4]+e)>>>0;H[5]=(H[5]+f)>>>0;H[6]=(H[6]+g)>>>0;H[7]=(H[7]+h)>>>0;
+ }
+ return H.map(function(v){return ('00000000'+v.toString(16)).slice(-8);}).join('');
+}
+function hashPw(pw,salt){var h=sha256(salt+':'+pw);for(var i=0;i<2000;i++)h=sha256(h+salt);return h;}
+A._sha256=sha256;
+
+/* ---------- veri ---------- */
+function defaults(){return {users:[],sites:{},settings:{trialDays:14,price:299,billingMonths:1,contact:'',company:'',address:''},session:null};}
+function load(){
+ var raw=null;
+ try{if(window.__INIT__&&typeof window.__INIT__==='string')raw=window.__INIT__;}catch(e){}
+ if(!raw){try{raw=localStorage.getItem('aida_v2');}catch(e){}}
+ if(raw){
+  try{
+   var p=JSON.parse(raw);
+   if(p&&Array.isArray(p.users)){
+    var d=defaults();
+    d.users=p.users;d.sites=p.sites||{};d.session=p.session||null;
+    d.settings=Object.assign(d.settings,p.settings||{});
+    return d;
+   }
+  }catch(e){}
+ }
+ return defaults();
+}
+function save(){
+ var s=JSON.stringify(db);
+ try{localStorage.setItem('aida_v2',s);}catch(e){}
+ if(window.nativeNotify)window.nativeNotify('save',{data:s});
+}
+function siteOf(mid){
+ var s=db.sites[mid];
+ if(!s){s={};db.sites[mid]=s;}
+ ['flats','expenses'].forEach(function(k){if(!Array.isArray(s[k]))s[k]=[];});
+ if(typeof s.monthlyDues!=='number')s.monthlyDues=2000;
+ if(typeof s.openingCash!=='number')s.openingCash=0;
+ if(typeof s.name!=='string')s.name='';
+ return s;
+}
+function findUser(id){for(var i=0;i<db.users.length;i++)if(db.users[i].id===id)return db.users[i];return null;}
+function findByEmail(em){for(var i=0;i<db.users.length;i++)if(db.users[i].email===em)return db.users[i];return null;}
+function findIn(list,id){for(var i=0;i<list.length;i++)if(list[i].id===id)return list[i];return null;}
+function curSite(){return me&&me.role==='yonetici'?siteOf(me.id):{flats:[],expenses:[],openingCash:0,monthlyDues:0,name:''};}
+function isMgr(){return !!me&&me.role==='yonetici';}
+function superOnly(){return !!me&&me.role==='superadmin';}
+function activeFlats(site){
+ return site.flats.filter(function(f){return f.active!==false;}).sort(function(a,b){return String(a.no).localeCompare(String(b.no),'tr',{numeric:true});});
+}
+function findFlat(site,id){for(var i=0;i<site.flats.length;i++)if(site.flats[i].id===id)return site.flats[i];return null;}
+function flatLabel(f){var name=String(f&&f.owner||'').trim();return 'Daire '+String(f&&f.no||'')+(name?' · '+name:'');}
+function rec(f,k){return f&&f.payments&&f.payments[k]?f.payments[k]:null;}
+function paidOf(r){var s=0;((r&&r.entries)||[]).forEach(function(e){s+=Number(e.amount)||0;});return round2(s);}
+function remainOf(r){return r?Math.max(0,round2(r.due-paidOf(r))):0;}
+function statusOf(r){
+ if(!r)return 'yok';
+ var p=paidOf(r);
+ if(p>=r.due)return 'odendi';
+ if(p>0)return 'kismi';
+ return 'odenmedi';
+}
+function badge(s){
+ if(s==='odendi')return '<span class="badge paid">Ödendi</span>';
+ if(s==='kismi')return '<span class="badge partial">Kısmi</span>';
+ if(s==='odenmedi')return '<span class="badge unpaid">Ödenmedi</span>';
+ return '<span class="badge none">Kayıt yok</span>';
+}
+function ensureRec(site,f,k){
+ if(!f.payments)f.payments={};
+ if(!f.payments[k])f.payments[k]={due:site.monthlyDues,entries:[],delay:1};
+ if(!Array.isArray(f.payments[k].entries))f.payments[k].entries=[];
+ return f.payments[k];
+}
+function flatDebt(f,uptoKey){
+ var total=0,months=0,delay=0,p=f.payments||{};
+ Object.keys(p).forEach(function(k){
+  if(k<=uptoKey){
+   var rem=remainOf(p[k]);
+   if(rem>0){total+=rem;months++;delay=Math.max(delay,Number(p[k].delay)||1);}
+  }
+ });
+ return {total:round2(total),months:months,delay:delay};
+}
+function cashOf(site){
+ var c=Number(site.openingCash)||0;
+ site.flats.forEach(function(f){Object.keys(f.payments||{}).forEach(function(k){c+=paidOf(f.payments[k]);});});
+ site.expenses.forEach(function(e){c-=Number(e.amount)||0;});
+ return round2(c);
+}
+function statBox(label,val){return '<div class="stat"><small>'+esc(label)+'</small><strong>'+esc(val)+'</strong></div>';}
+function bar(a,b){var p=b>0?Math.min(100,Math.round(a/b*100)):0;return '<div class="bar"><i style="width:'+p+'%"></i></div>';}
+
+/* ---------- abonelik ---------- */
+function planInfo(u){
+ var t=today();
+ if(u.plan==='ucretli'){
+  var end=u.nextBilling;
+  return {kind:'ucretli',start:u.paidStart,end:end,active:!!end&&end>=t,days:end?daysBetween(t,end):0};
+ }
+ if(!u.trialStart)return {kind:'deneme',start:null,end:null,active:true,days:null};
+ return {kind:'deneme',start:u.trialStart,end:u.trialEnd,active:u.trialEnd>=t,days:daysBetween(t,u.trialEnd)};
+}
+function startTrial(u){u.trialStart=today();u.trialEnd=addDays(today(),Number(db.settings.trialDays)||14);}
+function blockedReason(u){
+ if(u.role==='yonetici'){
+  var p=planInfo(u);
+  if(!p.active)return (p.kind==='ucretli'?'Ücretli sürümünüz ':'Deneme süreniz ')+fmtDate(p.end)+' tarihinde sona erdi.';
+ }
+ return null;
+}
+function contactText(){return db.settings.contact?'İletişim: '+db.settings.contact:'Ücretli sürüme geçmek için sistem yöneticisiyle iletişime geçin.';}
+
+/* ---------- arayüz yardımcıları ---------- */
+function toast(msg){var t=el('toast');t.textContent=msg;t.style.display='block';clearTimeout(toast.h);toast.h=setTimeout(function(){t.style.display='none';},2600);}
+function openModal(h){el('modalBox').innerHTML=h;el('modal').style.display='flex';}
+function closeModal(){el('modal').style.display='none';}
+A.closeModal=closeModal;
+function confirmBox(msg,yes){
+ openModal('<p>'+esc(msg)+'</p><div class="grid"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button class="danger" id="mYes">Onayla</button></div>');
+ el('mYes').onclick=function(){closeModal();yes();};
+}
+function askBox(title,ph,type,cb){
+ openModal('<h3>'+esc(title)+'</h3><input id="mInput" type="'+type+'" placeholder="'+esc(ph)+'"><div class="grid" style="margin-top:14px"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button id="mOk">Tamam</button></div>');
+ el('mOk').onclick=function(){var v=el('mInput').value;closeModal();cb(v);};
+}
+function copyText(t){
+ if(window.nativeNotify){window.nativeNotify('copy',{text:t});toast('Kopyalandı');return;}
+ try{navigator.clipboard.writeText(t).then(function(){toast('Kopyalandı');},function(){toast('Kopyalanamadı, metni elle seçin.');});}
+ catch(e){toast('Kopyalanamadı, metni elle seçin.');}
+}
+function openExternal(url){
+ if(window.nativeNotify)window.nativeNotify('openURL',{url:url});
+ else window.open(url,'_blank');
+}
+function waNumber(p){
+ var d=String(p||'').replace(/[^0-9]/g,'');
+ if(!d)return '';
+ if(d.indexOf('90')===0&&d.length>=12)return d;
+ if(d.charAt(0)==='0')d=d.slice(1);
+ return '90'+d;
+}
+function show(id){
+ ['landing','auth','setup','pending','siteSetup','locked','app'].forEach(function(v){el(v).classList.toggle('active',v===id);});
+ window.scrollTo(0,0);
+}
+A.show=show;
+
+/* ---------- tanıtım sayfası ---------- */
+function renderLanding(){
+ var s=db.settings;
+ el('landTrial').textContent=s.trialDays+' gün';
+ el('landTrial2').textContent=s.trialDays+' gün ücretsiz';
+ el('landPrice').textContent='₺'+s.price+' / '+(Number(s.billingMonths)===1?'ay':s.billingMonths+' ay');
+ el('landContact').textContent=s.contact?'İletişim: '+s.contact:'';
+ el('landYear').textContent=String(new Date().getFullYear());
+ el('landLegal').textContent=[s.company,s.address].filter(function(x){return x;}).join(' · ');
+ var tl=document.querySelectorAll('.faq-trial-value');
+ for(var i=0;i<tl.length;i++)tl[i].textContent=s.trialDays+' gün';
+}
+A.scrollLanding=function(id){
+ var target=el(id);
+ if(!target)return;
+ var top=target.getBoundingClientRect().top+window.pageYOffset-70;
+ window.scrollTo({top:top,behavior:'smooth'});
+};
+A.toggleFaq=function(id){
+ var answer=el(id),mark=el(id+'Mark');
+ if(!answer)return;
+ var opening=answer.style.display!=='block';
+ answer.style.display=opening?'block':'none';
+ if(mark)mark.textContent=opening?'−':'+';
+};
+A.contact=function(){
+ var raw=String(db.settings.contact||'').trim();
+ var emailMatch=raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
+ var phoneMatch=raw.match(/(?:\+?\d[\d\s().-]{7,}\d)/);
+ var email=emailMatch?emailMatch[0]:'';
+ var phone=phoneMatch?waNumber(phoneMatch[0]):'';
+ var h='<h3>İletişim</h3>';
+ if(raw)h+='<p class="muted">'+esc(raw)+'</p>';
+ else h+='<p class="muted">İletişim bilgileri henüz eklenmedi. Lütfen daha sonra tekrar deneyin.</p>';
+ h+='<div class="grid" style="margin-top:14px">';
+ if(email)h+='<button id="landContactEmail" class="secondary">E-posta gönder</button>';
+ if(phone)h+='<button id="landContactPhone">WhatsApp ile yaz</button>';
+ h+='<button class="ghost" onclick="A.closeModal()">Kapat</button></div>';
+ openModal(h);
+ if(email)el('landContactEmail').onclick=function(){openExternal('mailto:'+email+'?subject='+encodeURIComponent('AİDA hakkında bilgi'));};
+ if(phone)el('landContactPhone').onclick=function(){openExternal('https://wa.me/'+phone+'?text='+encodeURIComponent('Merhaba, AİDA hakkında bilgi almak istiyorum.'));};
+};
+A.showPrivacy=function(){
+ var s=db.settings;
+ var co=s.company?esc(s.company):'[Veri sorumlusu unvanı Sistem Ayarlarından eklenmeli]';
+ var ad=s.address?esc(s.address):'[Adres eklenmeli]';
+ var ct=s.contact?esc(s.contact):'[İletişim bilgisi eklenmeli]';
+ openModal('<h3>KVKK Aydınlatma Metni</h3>'+
+  '<p class="muted"><b>Önemli:</b> Bu metin, uygulamanın mevcut özellikleri için hazırlanmış bir başlangıç taslağıdır; hukuki uygunluk garantisi vermez. Yayımdan önce hukuk danışmanı incelemesinden geçirilmeli; hukuki sebepler, saklama süreleri ve aktarım bilgileri fiili işleyişe göre tamamlanmalıdır.</p>'+
+  '<h4>1. Veri sorumlusu</h4><p class="muted">'+co+'<br>'+ad+'<br>İletişim: '+ct+'</p>'+
+  '<h4>2. İşlenebilecek bilgiler ve amaçlar</h4><p class="muted">Yönetici hesabı oluşturma ve yönetme; site adı, daire numaraları, aidat, tahsilat ve gider kayıtları ile makbuz/rapor işlemlerini yürütme; hizmet güvenliği ve yedekleme amaçlarıyla şu bilgiler işlenebilir: yönetici adı-soyadı, e-posta, hesap ve plan bilgileri, daire numaraları, isteğe bağlı ad-soyad ve telefon, mali kayıtlar ve yöneticinin yüklediği makbuz/fiş fotoğrafları veya PDF dosyaları. Yayımlanan liste, gerçekte kullanılan veri alanlarıyla birebir uyumlu olmalıdır.</p>'+
+  '<h4>3. Hukuki sebepler</h4><p class="muted">Her işleme amacı için geçerli hukuki sebep, hizmetin fiili işleyişine ve veri sorumlusunun rolüne göre ayrı ayrı belirlenip doğrulanmalıdır.</p>'+
+  '<h4>4. Saklama, hizmet sağlayıcılar ve aktarım</h4><p class="muted">Bu sürüm verileri JSBox paylaşımlı dosya alanında ve WebView yerel depolamasında tutar. Cihaz, JSBox ve varsa yedekleme/senkronizasyon ayarları verinin nerede saklandığını etkileyebilir. Saklama süresi, hizmet sağlayıcılar, yurt içi/yurt dışı aktarım ve silme süreçleri gerçek kuruluma göre açıklanmalıdır.</p>'+
+  '<h4>5. İlgili kişi başvuruları</h4><p class="muted">KVKK kapsamındaki başvurular için yukarıdaki iletişim bilgisini kullanabilirsiniz. Başvuru yöntemi ve yanıt süreci veri sorumlusu tarafından yayımdan önce tamamlanmalıdır.</p>'+
+  '<div class="grid" style="margin-top:14px"><button class="secondary" onclick="A.closeModal()">Kapat</button><button onclick="A.contact()">İletişim</button></div>');
+};
+A.showTerms=function(){
+ openModal('<h3>Kullanım Koşulları · Taslak</h3>'+
+  '<p class="muted"><b>Yayımdan önce tamamlayın:</b> Hizmeti sunan tarafın unvanı ve adresi, destek kanalı, ücret/yenileme/iptal kuralları, hizmet kapsamı, sorumluluk sınırları ve yürürlük tarihi gerçek iş modelinize göre düzenlenmelidir. Bu kısa metin hukuki incelemenin yerini tutmaz.</p>'+
+  '<h4>Hesap ve kayıtlar</h4><p class="muted">Yöneticiler hesap bilgilerini doğru tutmalı, erişim bilgilerini korumalı ve girdikleri daire, aidat, tahsilat ve gider kayıtlarını kontrol etmelidir.</p>'+
+  '<h4>Ücret ve hizmet</h4><p class="muted">Deneme süresi ve ücret bilgileri bilgilendirme amaçlıdır. Satış, ödeme, yenileme ve iptal şartları kullanıcıya açıkça bildirilip kabul edilmeden bağlayıcı koşul gibi sunulmamalıdır.</p>'+
+  '<h4>Destek ve veri</h4><p class="muted">Destek ve veri işleme hakkında bilgi için iletişim bilgilerini ve KVKK aydınlatma metnini kullanın.</p>'+
+  '<div class="grid" style="margin-top:14px"><button class="secondary" onclick="A.closeModal()">Kapat</button><button onclick="A.showPrivacy()">KVKK metni</button></div>');
+};
+
+/* ---------- açılış / gezinme ---------- */
+function enterInner(){
+ me=db.session?findUser(db.session):null;
+ renderLanding();
+ if(!me){
+  if(db.session){db.session=null;save();}
+  show(db.users.length===0?'setup':'landing');
+  return;
+ }
+ if(me.role==='beklemede'){
+  el('pendingText').textContent=me.name+' ('+me.email+') yönetici başvurunuz onay bekliyor.';
+  show('pending');return;
+ }
+ if(me.role!=='yonetici'&&me.role!=='superadmin'){
+  db.session=null;save();me=null;show('auth');A.authTab('login');
+  setMsg('authMsg','Bu sürüm yalnızca yönetici hesapları içindir.');
+  return;
+ }
+ var why=blockedReason(me);
+ if(why){el('lockedMsg').textContent=why;el('lockedContact').textContent=contactText();show('locked');return;}
+ if(isMgr()){
+  var site=siteOf(me.id);
+  if(!String(site.name||'').trim()||site.name==='Sitemiz'){
+   el('firstSiteName').value=site.name==='Sitemiz'?'':site.name;
+   setMsg('siteSetupMsg','');
+   show('siteSetup');return;
+  }
+ }
+ buildNav();setupMonths();renderAll();show('app');
+ A.tab(NAVS[me.role][0][0]);
+}
+A.enter=function(){
+ try{enterInner();}
+ catch(err){me=null;show('auth');A.authTab('login');setMsg('authMsg','Hata: '+(err&&err.message?err.message:err));}
+};
+function buildNav(){
+ el('tabbar').innerHTML=NAVS[me.role].map(function(it){
+  return '<button data-t="'+it[0]+'" onclick="A.tab(\''+it[0]+'\')"><i>'+it[2]+'</i>'+it[1]+'</button>';
+ }).join('');
+}
+A.tab=function(id){
+ var navId=id;
+ if(isMgr()&&(id==='site'||id==='receipts'||id==='backup'))navId='more';
+ var pages=document.querySelectorAll('.page'),i;
+ for(i=0;i<pages.length;i++)pages[i].classList.remove('active');
+ el('p-'+id).classList.add('active');
+ var bs=el('tabbar').querySelectorAll('button');
+ for(i=0;i<bs.length;i++)bs[i].classList.toggle('active',bs[i].getAttribute('data-t')===navId);
+ if(id==='receipts')renderReceipts();
+ if(id==='backup')renderBackup();
+ window.scrollTo(0,0);
+};
+function setupMonths(){
+ var s=el('payMonth');
+ if(s.options&&s.options.length)return;
+ var y=new Date().getFullYear(),o=[];
+ for(var yy=y-1;yy<=y+2;yy++)for(var m=1;m<=12;m++){var k=yy+'-'+pad(m);o.push('<option value="'+k+'">'+monthLabel(k)+'</option>');}
+ s.innerHTML=o.join('');
+ s.value=monthKey(new Date());
+}
+function renderAll(){
+ if(superOnly()){
+  el('appTitle').textContent='AİDA';el('who').textContent=me.name+' · '+ROLE_LABEL[me.role];
+  renderPlanBanner();renderMembers();renderSysSettings();renderMore();return;
+ }
+ var site=curSite();
+ el('appTitle').textContent=site.name||'AİDA';
+ el('who').textContent=me.name+' · '+ROLE_LABEL[me.role];
+ renderPlanBanner();renderHome();renderPay();renderExpensesPage();renderFlats();renderSiteForm(site);renderMore();
+}
+
+/* ---------- kimlik doğrulama ---------- */
+A.togglePw=function(){
+ for(var i=0;i<arguments.length;i++){var f=el(arguments[i]);f.type=f.type==='password'?'text':'password';}
+};
+A.goAuth=function(mode){show('auth');A.authTab(mode);};
+A.authTab=function(mode){
+ el('authDiag').textContent=resetNote;
+ el('formLogin').style.display=mode==='login'?'block':'none';
+ el('formReg').style.display=mode==='register'?'block':'none';
+ el('tabLogin').className=mode==='login'?'':'secondary';
+ el('tabReg').className=mode==='register'?'':'secondary';
+ setMsg('authMsg','');
+};
+A.saveFirstSite=function(){
+ if(!isMgr())return;
+ var name=el('firstSiteName').value.trim();
+ if(name.length<2){setMsg('siteSetupMsg','Lütfen en az 2 karakterli bir site adı girin.');return;}
+ siteOf(me.id).name=name;save();A.enter();toast('Site bilgisi kaydedildi.');
+};
+function makeUser(name,email,pw,role){
+ var salt=uid()+uid();
+ return {id:uid(),name:name,email:email,salt:salt,hash:hashPw(pw,salt),role:role,plan:'deneme',trialStart:null,trialEnd:null,paidStart:null,nextBilling:null,maxFlats:10,createdAt:today()};
+}
+function checkSignup(name,email,p1,p2,msgId){
+ if(name.length<2){setMsg(msgId,'Ad soyad girin.');return false;}
+ if(!validEmail(email)){setMsg(msgId,'Geçerli bir e-posta girin.');return false;}
+ if(p1.length<6){setMsg(msgId,'Şifre en az 6 karakter olmalı.');return false;}
+ if(p1!==p2){setMsg(msgId,'Şifreler aynı değil.');return false;}
+ if(findByEmail(email)){setMsg(msgId,'Bu e-posta ile zaten kayıt var.');return false;}
+ return true;
+}
+A.setup=function(){
+ if(db.users.length>0)return;
+ var name=el('sName').value.trim(),email=normEmail(el('sEmail').value);
+ var p1=el('sPass').value,p2=el('sPass2').value;
+ if(!checkSignup(name,email,p1,p2,'setupMsg'))return;
+ var u=makeUser(name,email,p1,'superadmin');
+ db.users.push(u);db.session=u.id;save();
+ A.enter();toast('Süper Admin hesabı oluşturuldu.');
+};
+A.register=function(){
+ var name=el('rName').value.trim(),email=normEmail(el('rEmail').value);
+ var p1=el('rPass').value,p2=el('rPass2').value;
+ if(!checkSignup(name,email,p1,p2,'authMsg'))return;
+ var u=makeUser(name,email,p1,'beklemede');
+ db.users.push(u);db.session=u.id;save();
+ el('rPass').value='';el('rPass2').value='';
+ A.enter();
+};
+A.login=function(){
+ if(Date.now()<lockUntil){setMsg('authMsg','Çok fazla hatalı deneme. 30 saniye bekleyin.');return;}
+ var email=normEmail(el('lEmail').value),pw=el('lPass').value;
+ var u=findByEmail(email);
+ if(!u){setMsg('authMsg','Bu e-posta ile kayıtlı hesap bulunamadı. Hesaplar şu an yalnızca kayıt olunan telefonda geçerlidir.');return;}
+ if(u.hash===hashPw(pw,u.salt)){
+  fails=0;db.session=u.id;save();
+  el('lPass').value='';setMsg('authMsg','');
+  A.enter();
+ }else{
+  fails++;
+  if(fails>=5){lockUntil=Date.now()+30000;fails=0;}
+  setMsg('authMsg','Şifre hatalı. "Şifreyi göster" ile yazdığınızı kontrol edin.');
+ }
+};
+A.logout=function(){
+ db.session=null;save();me=null;pendingPaymentAttachment=null;pendingExpenseAttachment=null;
+ closeModal();el('lEmail').value='';el('lPass').value='';show('landing');
+};
+A.changePw=function(){
+ openModal('<h3>Şifre değiştir</h3><label>Mevcut şifre</label><input id="cpOld" type="password"><label>Yeni şifre</label><input id="cpNew" type="password"><label>Yeni şifre tekrar</label><input id="cpNew2" type="password"><div id="cpMsg" class="msg"></div><div class="grid" style="margin-top:14px"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button onclick="A.doChangePw()">Kaydet</button></div>');
+};
+A.doChangePw=function(){
+ var o=el('cpOld').value,n=el('cpNew').value,n2=el('cpNew2').value;
+ if(hashPw(o,me.salt)!==me.hash){setMsg('cpMsg','Mevcut şifre hatalı.');return;}
+ if(n.length<6){setMsg('cpMsg','Yeni şifre en az 6 karakter olmalı.');return;}
+ if(n!==n2){setMsg('cpMsg','Yeni şifreler aynı değil.');return;}
+ me.salt=uid()+uid();me.hash=hashPw(n,me.salt);save();closeModal();toast('Şifre değiştirildi.');
+};
+function guard(){
+ if(!isMgr())return false;
+ if(blockedReason(me)){closeModal();A.enter();return false;}
+ return true;
+}
+
+/* ---------- yönetici: özet ---------- */
+function renderPlanBanner(){
+ var b=el('planBanner'),pb=el('appPlan');
+ if(!isMgr()){b.innerHTML='';pb.style.display='none';return;}
+ var p=planInfo(me),kind=p.kind==='ucretli'?'Ücretli':'Deneme';
+ pb.style.display='';
+ if(p.days==null){pb.textContent=kind;pb.className='badge none';b.innerHTML='';return;}
+ pb.textContent=kind+' · '+p.days+' gün';pb.className='badge '+(p.days<=3?'unpaid':'none');
+ b.innerHTML=p.days<=7?'<div class="banner'+(p.days<=3?' warn':'')+'">'+esc((p.kind==='ucretli'?'Ücretli sürümün yenilenmesine ':'Deneme sürenizin bitmesine ')+p.days+' gün kaldı ('+fmtDate(p.end)+'). Devam etmek için iletişime geçin.')+'</div>':'';
+}
+function renderHome(){
+ var site=curSite(),flats=activeFlats(site),nowKey=monthKey(new Date());
+ var debt=0,paid=0,due=0,rows=[];
+ flats.forEach(function(f){
+  var d=flatDebt(f,nowKey);debt+=d.total;
+  if(d.total>0)rows.push({f:f,d:d});
+  var r=rec(f,nowKey);if(r){paid+=paidOf(r);due+=Number(r.due)||0;}
+ });
+ el('stats').innerHTML=statBox('Kasa bakiyesi',money(cashOf(site)))+statBox('Toplam borç',money(debt))+statBox('Borçlu daire',String(rows.length))+statBox('Daire sayısı',String(flats.length));
+ var pct=due>0?Math.min(100,Math.round(paid/due*100)):0;
+ el('monthCard').innerHTML=due>0
+  ?'<div class="cardhead"><h3>'+monthLabel(nowKey)+'</h3><span class="muted">%'+pct+'</span></div><div class="muted">Tahsil edilen '+money(paid)+' · Beklenen '+money(due)+'</div>'+bar(paid,due)
+  :'<h3>'+monthLabel(nowKey)+'</h3><div class="muted">Bu ay için aidat kaydı yok. Aidat sekmesinden tüm dairelere oluşturabilirsiniz.</div>';
+ rows.sort(function(a,b){return b.d.total-a.d.total;});
+ el('debtList').innerHTML=rows.length?rows.slice(0,5).map(function(x){
+  return '<div class="row tap" onclick="A.openPay(\''+x.f.id+'\')"><div class="main"><b>'+esc(flatLabel(x.f))+'</b><div class="muted">'+x.d.months+' ay borç</div></div><b>'+money(x.d.total)+'</b></div>';
+ }).join('')+(rows.length>5?'<div class="muted" style="padding-top:8px">+ '+(rows.length-5)+' daire daha</div>':''):'<div class="muted">Borçlu daire yok.</div>';
+}
+
+/* ---------- yönetici: aidat ---------- */
+A.refresh=function(){if(!me)return;pendingPaymentAttachment=null;renderAll();};
+A.setFilter=function(f){st.filter=f;renderPay();};
+function renderPay(){
+ var site=curSite(),flats=activeFlats(site),month=el('payMonth').value||monthKey(new Date());
+ var paid=0,due=0,cnt={all:flats.length,odendi:0,kismi:0,odenmedi:0,yok:0};
+ flats.forEach(function(f){var r=rec(f,month);cnt[statusOf(r)]++;if(r){paid+=paidOf(r);due+=Number(r.due)||0;}});
+ el('paySummary').innerHTML=due>0
+  ?'<div class="muted">'+monthLabel(month)+' · tahsilat</div><b style="font-size:19px">'+money(paid)+'</b> <span class="muted">/ '+money(due)+'</span>'+bar(paid,due)
+  :'<div class="muted">'+monthLabel(month)+' için henüz aidat kaydı yok. Aşağıdaki düğmeyle tüm dairelere oluşturabilirsiniz.</div>';
+ el('payChips').innerHTML=[['all','Tümü'],['odenmedi','Ödenmedi'],['kismi','Kısmi'],['odendi','Ödendi']].map(function(x){
+  return '<button class="'+(st.filter===x[0]?'on':'')+'" onclick="A.setFilter(\''+x[0]+'\')">'+x[1]+' '+cnt[x[0]]+'</button>';
+ }).join('');
+ var list=flats.filter(function(f){return st.filter==='all'||statusOf(rec(f,month))===st.filter;});
+ el('payList').innerHTML=list.length?list.map(function(f){
+  var r=rec(f,month),rem=remainOf(r),extra=[f.owner,f.phone].filter(Boolean).map(esc).join(' · ');
+  return '<div class="row tap" onclick="A.openPay(\''+f.id+'\')"><div class="main"><b>Daire '+esc(f.no)+'</b>'+(extra?'<div class="muted">'+extra+'</div>':'')+'</div><div style="text-align:right">'+badge(statusOf(r))+(rem>0?'<div class="muted">Kalan '+money(rem)+'</div>':'')+'</div></div>';
+ }).join(''):'<div class="muted">'+(flats.length?'Bu filtrede daire yok.':'Henüz daire yok. Daire sekmesinden ilk dairenizi ekleyin.')+'</div>';
+}
+A.openPay=function(fid){
+ if(!guard())return;
+ if(fid){st.flatId=fid;pendingPaymentAttachment=null;}
+ var site=curSite(),f=findFlat(site,st.flatId),k=el('payMonth').value;
+ if(!f)return;
+ var r=rec(f,k),s=statusOf(r),h='<div class="sheethead"><div><h3>'+esc(flatLabel(f))+'</h3><div class="muted">'+monthLabel(k)+'</div></div>'+badge(s)+'</div>';
+ if(!r){
+  h+='<p class="muted">Bu ay için aidat kaydı yok.</p><button class="full" onclick="A.createRec()">Aidat kaydı oluştur ('+money(site.monthlyDues)+')</button><button class="ghost full" onclick="A.closeModal()">Kapat</button>';
+  openModal(h);return;
+ }
+ h+='<div class="grid3"><div class="stat"><small>Aidat</small><strong>'+money(r.due)+'</strong></div><div class="stat"><small>Ödenen</small><strong>'+money(paidOf(r))+'</strong></div><div class="stat"><small>Kalan</small><strong>'+money(remainOf(r))+'</strong></div></div>';
+ if(s!=='odendi')h+='<div class="muted" style="margin-top:8px">Gecikme: '+(Number(r.delay)||1)+(Number(r.delay)>=5?'+':'')+' ay</div>';
+ h+='<h4>Ödeme ekle</h4>'+
+  '<input id="payAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="Tutar (₺)">'+
+  '<button class="ghost small" style="margin-top:4px" onclick="A.fillRemain()">Kalan tutarı yaz</button>'+
+  '<label>Not (isteğe bağlı)</label><input id="payNote" placeholder="Havale, nakit...">'+
+  '<label>Makbuz eki (isteğe bağlı)</label><input id="paymentAttachment" type="file" accept="image/*,application/pdf" onchange="A.readAttachment(this,\'payment\')">'+
+  '<div id="paymentAttachmentHint" class="muted">Fotoğraf küçültülür; PDF en fazla 800 KB.</div>'+
+  '<button class="success full" onclick="A.addPayment()">Ödemeyi kaydet</button>';
+ var ents=r.entries.slice().reverse();
+ h+='<h4>Ödeme geçmişi</h4>'+(ents.length?ents.map(function(e){
+  return '<div class="row"><div class="main"><b>'+money(e.amount)+'</b><div class="muted">'+fmtDate(e.date)+(e.note?' · '+esc(e.note):'')+(e.attachment?' · Ek var':'')+'</div></div><button class="secondary small" onclick="A.receipt(\''+f.id+'\',\''+k+'\',\''+e.id+'\')">Makbuz</button><button class="danger small" onclick="A.delPayment(\''+e.id+'\')">Sil</button></div>';
+ }).join(''):'<div class="muted">Henüz ödeme girilmemiş.</div>');
+ h+='<details><summary>Aidat tutarı ve gecikme</summary>'+
+  '<label>Bu ayın aidat tutarı (₺)</label><div class="grid"><input id="recDue" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(r.due)+'"><button class="secondary" onclick="A.saveDue()">Kaydet</button></div>'+
+  '<label>Gecikmiş ay sayısı</label><select id="delay" onchange="A.changeDelay()"><option value="1">1 ay</option><option value="2">2 ay</option><option value="3">3 ay</option><option value="4">4 ay</option><option value="5">5+ ay</option></select></details>'+
+  '<button class="ghost full" onclick="A.closeModal()">Kapat</button>';
+ openModal(h);
+ el('delay').value=String(Math.min(5,Math.max(1,Number(r.delay)||1)));
+};
+A.createRec=function(){
+ if(!guard())return;
+ var site=curSite(),f=findFlat(site,st.flatId);if(!f)return;
+ ensureRec(site,f,el('payMonth').value);
+ save();renderAll();A.openPay();
+};
+A.fillRemain=function(){
+ var f=findFlat(curSite(),st.flatId),r=rec(f,el('payMonth').value);
+ el('payAmount').value=r?remainOf(r):'';
+};
+A.addPayment=function(){
+ if(!guard())return;
+ var site=curSite(),f=findFlat(site,st.flatId),k=el('payMonth').value;
+ if(!f)return;
+ var amt=Number(el('payAmount').value);
+ if(!isFinite(amt)||amt<=0){toast('Geçerli bir ödeme tutarı girin.');return;}
+ var r=ensureRec(site,f,k),entry={id:uid(),amount:round2(amt),date:today(),note:el('payNote').value.trim()};
+ if(pendingPaymentAttachment)entry.attachment=pendingPaymentAttachment;
+ r.entries.push(entry);
+ pendingPaymentAttachment=null;
+ save();renderAll();A.openPay();
+ toast(paidOf(r)>r.due?'Ödeme eklendi (aidat tutarından fazla).':statusOf(r)==='odendi'?'Aidat tamamlandı.':'Kısmi ödeme eklendi.');
+};
+A.delPayment=function(eid){
+ if(!guard())return;
+ confirmBox('Bu ödeme kaydı silinsin mi? Kasa bakiyesi buna göre düşer.',function(){
+  var r=rec(findFlat(curSite(),st.flatId),el('payMonth').value);
+  if(!r)return;
+  r.entries=r.entries.filter(function(e){return e.id!==eid;});
+  save();renderAll();A.openPay();
+ });
+};
+A.saveDue=function(){
+ if(!guard())return;
+ var v=Number(el('recDue').value);
+ if(!isFinite(v)||v<0){toast('Geçerli bir tutar girin.');return;}
+ var r=rec(findFlat(curSite(),st.flatId),el('payMonth').value);if(!r)return;
+ r.due=round2(v);save();renderAll();A.openPay();toast('Aidat tutarı kaydedildi.');
+};
+A.changeDelay=function(){
+ if(!guard())return;
+ var r=rec(findFlat(curSite(),st.flatId),el('payMonth').value);if(!r)return;
+ r.delay=Number(el('delay').value)||1;save();renderAll();toast('Gecikme kaydedildi.');
+};
+A.createDues=function(){
+ if(!guard())return;
+ var site=curSite(),k=el('payMonth').value,n=0;
+ activeFlats(site).forEach(function(f){if(!rec(f,k)){ensureRec(site,f,k);n++;}});
+ save();renderAll();
+ toast(n?monthLabel(k)+' için '+n+' daireye aidat oluşturuldu.':'Tüm dairelerde bu ay kaydı zaten var.');
+};
+A.receipt=function(fid,k,eid){
+ var site=curSite(),f=findFlat(site,fid),r=rec(f,k);
+ if(!r)return;
+ var e=null;r.entries.forEach(function(x){if(x.id===eid)e=x;});
+ if(!e)return;
+ var text=receiptText(site,f,k,e,r);
+ openModal('<h3>Makbuz</h3><textarea id="mText" readonly></textarea><div class="grid" style="margin-top:12px"><button class="secondary" id="mCopy">Kopyala</button><button class="success" id="mWa">WhatsApp</button></div><button class="ghost full" onclick="A.openPay()">Geri</button>');
+ el('mText').value=text;
+ el('mCopy').onclick=function(){copyText(text);};
+ el('mWa').onclick=function(){openExternal('https://wa.me/?text='+encodeURIComponent(text));};
+};
+function receiptText(site,f,k,e,r){
+ return 'MAKBUZ'+NL+(site.name||'Site')+NL+flatLabel(f)+NL+'Dönem: '+monthLabel(k)+NL+'Ödeme tarihi: '+fmtDate(e.date)+NL+'Tutar: '+money(e.amount)+NL+'Aidat: '+money(r.due)+NL+'Bu ay kalan: '+money(remainOf(r))+NL+'Makbuz no: '+String(e.id).slice(-6).toUpperCase();
+}
+
+/* ---------- ek dosyalar ---------- */
+function storedAttachmentChars(site){
+ var n=0;
+ (site.flats||[]).forEach(function(f){
+  Object.keys(f.payments||{}).forEach(function(k){
+   ((f.payments[k]&&f.payments[k].entries)||[]).forEach(function(e){if(e.attachment&&e.attachment.data)n+=e.attachment.data.length;});
+  });
+ });
+ (site.expenses||[]).forEach(function(e){if(e.attachment&&e.attachment.data)n+=e.attachment.data.length;});
+ return n;
+}
+function attachmentHint(kind,text){
+ var id=kind==='payment'?'paymentAttachmentHint':kind==='expense'?'expenseAttachmentHint':'archiveAttachmentHint';
+ var node=el(id);if(node)node.textContent=text;
+}
+function finishAttachmentRead(kind,file,data,type,name){
+ if(!data||data.length>MAX_ATTACHMENT_CHARS){toast('Ek dosya sınırı aşıyor. Fotoğrafı küçültün veya daha küçük bir PDF seçin.');attachmentHint(kind,'Dosya eklenemedi.');return;}
+ var site=curSite(),other=kind==='payment'?pendingExpenseAttachment:pendingPaymentAttachment;
+ var total=storedAttachmentChars(site)+(other&&other.data?other.data.length:0)+data.length;
+ if(total>MAX_SITE_ATTACHMENT_CHARS){toast('Site için toplam dosya sınırı aşılıyor. Daha küçük bir dosya seçin.');attachmentHint(kind,'Site ek alanı dolu.');return;}
+ var item={name:String(name||file.name||'Belge').slice(0,120),type:type||file.type||'application/octet-stream',data:data,size:file.size||0};
+ if(kind==='payment')pendingPaymentAttachment=item;else pendingExpenseAttachment=item;
+ attachmentHint(kind,item.name+' · '+Math.max(1,Math.round(data.length/1024))+' KB · hazır');
+}
+function compressImageAttachment(data,file,kind,done){
+ var image=new Image();
+ image.onload=function(){
+  try{
+   var scale=Math.min(1,1500/Math.max(image.width,image.height)),canvas=document.createElement('canvas'),out='';
+   for(var i=0;i<4;i++){
+    canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));
+    var ctx=canvas.getContext('2d');ctx.drawImage(image,0,0,canvas.width,canvas.height);
+    out=canvas.toDataURL('image/jpeg',Math.max(.42,.76-i*.1));
+    if(out.length<=MAX_ATTACHMENT_CHARS)break;
+    scale*=.78;
+   }
+   done(out,'image/jpeg',String(file.name||'foto.jpg').replace(/\.[^.]+$/,'')+'.jpg');
+  }catch(err){toast('Fotoğraf küçültülemedi. JPG veya PNG olarak tekrar deneyin.');attachmentHint(kind,'Fotoğraf işlenemedi.');}
+ };
+ image.onerror=function(){toast('Fotoğraf açılamadı. JPG veya PNG dosyası seçin.');attachmentHint(kind,'Fotoğraf işlenemedi.');};
+ image.src=data;
+}
+function checkFile(file,kind){
+ var isPdf=file.type==='application/pdf'||/\.pdf$/i.test(file.name||'');
+ var isImage=(file.type||'').indexOf('image/')===0||/\.(jpe?g|png|heic|webp)$/i.test(file.name||'');
+ if(!isPdf&&!isImage){attachmentHint(kind,'Desteklenmeyen dosya türü.');toast('Yalnızca fotoğraf veya PDF ekleyebilirsiniz.');return null;}
+ if(file.size>12*1024*1024){attachmentHint(kind,'Dosya çok büyük.');toast('Dosya 12 MB sınırını aşıyor.');return null;}
+ if(isPdf&&file.size>800*1024){attachmentHint(kind,'PDF dosyası çok büyük.');toast('PDF için üst sınır 800 KB.');return null;}
+ if(typeof FileReader==='undefined'){attachmentHint(kind,'Dosya okuma kullanılamıyor.');toast('Bu JSBox sürümünde dosya okuma desteklenmiyor.');return null;}
+ return {isPdf:isPdf,isImage:isImage};
+}
+A.readAttachment=function(input,kind){
+ var file=input&&input.files&&input.files[0];if(!file)return;
+ if(!isMgr()){toast('Bu işlem yalnızca yönetici hesabında kullanılabilir.');return;}
+ var ownerId=me.id;
+ if(kind==='payment')pendingPaymentAttachment=null;else pendingExpenseAttachment=null;
+ attachmentHint(kind,'Dosya okunuyor ve hazırlanıyor…');
+ var t=checkFile(file,kind);if(!t)return;
+ var reader=new FileReader();
+ reader.onerror=function(){attachmentHint(kind,'Dosya okunamadı.');toast('Dosya okunamadı. Tekrar deneyin.');};
+ reader.onload=function(){
+  if(!me||me.id!==ownerId||!isMgr())return;
+  var data=String(reader.result||'');
+  if(t.isImage)compressImageAttachment(data,file,kind,function(out,mime,name){
+   if(!me||me.id!==ownerId||!isMgr())return;
+   finishAttachmentRead(kind,file,out,mime,name);
+  });
+  else finishAttachmentRead(kind,file,data,'application/pdf',file.name);
+ };
+ reader.readAsDataURL(file);
+};
+/* ---------- yönetici: gider ---------- */
+function renderExpensesPage(){
+ var site=curSite(),nowKey=monthKey(new Date()),monthTotal=0,total=0;
+ var l=site.expenses.slice().sort(function(a,b){return String(b.date).localeCompare(String(a.date));});
+ l.forEach(function(e){var a=Number(e.amount)||0;total+=a;if(String(e.date).slice(0,7)===nowKey)monthTotal+=a;});
+ el('expSummary').innerHTML=statBox('Bu ay',money(monthTotal))+statBox('Toplam',money(total));
+ el('expenses').innerHTML=l.length?l.map(function(e){
+  return '<div class="row tap" onclick="A.openArchiveItem(\'expense\',\''+enc(e.id)+'\',\'\',\'\')"><div class="main"><b>'+esc(e.title)+'</b><div class="muted">'+fmtDate(e.date)+(e.attachment?' · Fiş eklendi':'')+'</div></div><b>'+money(e.amount)+'</b></div>';
+ }).join(''):'<div class="muted">Henüz gider kaydı yok.</div>';
+}
+A.openExpense=function(){
+ if(!guard())return;
+ pendingExpenseAttachment=null;
+ openModal('<h3>Gider ekle</h3>'+
+  '<label>Açıklama</label><input id="expenseTitle" placeholder="Elektrik faturası">'+
+  '<label>Tutar (₺)</label><input id="expenseAmount" type="number" inputmode="decimal" min="0" step="0.01" placeholder="1500">'+
+  '<label>Fiş eki (isteğe bağlı)</label><input id="expenseAttachment" type="file" accept="image/*,application/pdf" onchange="A.readAttachment(this,\'expense\')">'+
+  '<div id="expenseAttachmentHint" class="muted">Fotoğraf küçültülür; PDF en fazla 800 KB.</div>'+
+  '<div class="grid" style="margin-top:16px"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button onclick="A.addExpense()">Kaydet</button></div>');
+};
+A.addExpense=function(){
+ if(!guard())return;
+ var site=curSite(),title=el('expenseTitle').value.trim(),amt=Number(el('expenseAmount').value);
+ if(!title||!isFinite(amt)||amt<=0){toast('Açıklama ve geçerli tutar girin.');return;}
+ var expense={id:uid(),title:title,amount:round2(amt),date:today()};
+ if(pendingExpenseAttachment)expense.attachment=pendingExpenseAttachment;
+ site.expenses.push(expense);
+ pendingExpenseAttachment=null;
+ save();closeModal();renderAll();toast('Gider kaydedildi.');
+};
+A.delExpense=function(id){
+ if(!guard())return;
+ confirmBox('Bu gider silinsin mi? Tutar kasaya geri eklenir.',function(){
+  var site=curSite();
+  site.expenses=site.expenses.filter(function(e){return e.id!==id;});
+  save();renderAll();renderReceipts();
+ });
+};
+
+/* ---------- yönetici: daireler ---------- */
+function renderFlats(){
+ var site=curSite(),list=activeFlats(site);
+ el('flatLimitInfo').textContent=list.length+' / '+me.maxFlats+' daire (sınırı sistem yöneticisi belirler)';
+ el('flatList').innerHTML=list.length?list.map(function(f){
+  var extra=[f.owner,f.phone].filter(Boolean).map(esc).join(' · ');
+  return '<div class="row tap" onclick="A.editFlat(\''+f.id+'\')"><div class="main"><b>Daire '+esc(f.no)+'</b><div class="muted">'+(extra||'Ad soyad / telefon eklenmedi')+'</div></div><span class="muted">›</span></div>';
+ }).join(''):'<div class="muted">Henüz daire eklenmedi.</div>';
+}
+function validPhone(p){return !p||(p.length<=30&&p.replace(/\D/g,'').length>=7);}
+A.openFlat=function(){
+ if(!guard())return;
+ openModal('<h3>Daire ekle</h3>'+
+  '<label>Daire numarası</label><input id="flatNo" placeholder="12">'+
+  '<label>Ad soyad (isteğe bağlı)</label><input id="flatOwner" maxlength="100" placeholder="Örn. Ayşe Yılmaz">'+
+  '<label>Telefon (isteğe bağlı)</label><input id="flatPhone" type="tel" maxlength="30" placeholder="05xx xxx xx xx">'+
+  '<div class="grid" style="margin-top:16px"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button onclick="A.addFlat()">Kaydet</button></div>');
+};
+A.addFlat=function(){
+ if(!guard())return;
+ var site=curSite(),list=activeFlats(site);
+ if(list.length>=me.maxFlats){toast('Maksimum daire sınırına ('+me.maxFlats+') ulaşıldı.');return;}
+ var no=el('flatNo').value.trim(),owner=el('flatOwner').value.trim(),phone=el('flatPhone').value.trim();
+ if(!no){toast('Daire numarası girin.');return;}
+ if(owner.length>100){toast('Ad soyad en fazla 100 karakter olabilir.');return;}
+ if(!validPhone(phone)){toast('Telefon numarasını kontrol edin veya boş bırakın.');return;}
+ if(list.some(function(f){return String(f.no).toLowerCase()===no.toLowerCase();})){toast('Bu daire numarası zaten kayıtlı.');return;}
+ site.flats.push({id:uid(),no:no,owner:owner,phone:phone,active:true,payments:{}});
+ save();closeModal();renderAll();toast('Daire eklendi.');
+};
+A.editFlat=function(id){
+ if(!guard())return;
+ var f=findFlat(curSite(),id);if(!f)return;
+ openModal('<h3>Daire '+esc(f.no)+'</h3>'+
+  '<label>Ad soyad (isteğe bağlı)</label><input id="editFlatOwner" maxlength="100" value="'+esc(f.owner||'')+'">'+
+  '<label>Telefon (isteğe bağlı)</label><input id="editFlatPhone" type="tel" maxlength="30" value="'+esc(f.phone||'')+'">'+
+  '<div class="grid" style="margin-top:16px"><button class="secondary" onclick="A.closeModal()">Vazgeç</button><button onclick="A.saveFlatContact(\''+f.id+'\')">Kaydet</button></div>'+
+  '<button class="danger full" onclick="A.archiveFlat(\''+f.id+'\')">Daireyi arşivle</button>');
+};
+A.saveFlatContact=function(id){
+ if(!guard())return;
+ var f=findFlat(curSite(),id);if(!f)return;
+ var owner=el('editFlatOwner').value.trim(),phone=el('editFlatPhone').value.trim();
+ if(owner.length>100){toast('Ad soyad en fazla 100 karakter olabilir.');return;}
+ if(!validPhone(phone)){toast('Telefon numarasını kontrol edin veya boş bırakın.');return;}
+ f.owner=owner;f.phone=phone;save();closeModal();renderAll();toast('Daire bilgileri güncellendi.');
+};
+A.archiveFlat=function(id){
+ if(!guard())return;
+ confirmBox('Daire arşivlensin mi? Geçmiş ödemeler kasada korunur, daire listelerden kalkar.',function(){
+  var f=findFlat(curSite(),id);if(f)f.active=false;
+  save();renderAll();
+ });
+};
+
+/* ---------- diğer / hesap / site ayarları ---------- */
+function renderMore(){
+ var acc='<div class="row" style="border:0;padding:0"><div class="main"><b>'+esc(me.name)+'</b><div class="muted">'+esc(me.email)+'</div></div><span class="badge '+(me.role==='superadmin'?'partial':'paid')+'">'+ROLE_LABEL[me.role]+'</span></div>';
+ if(isMgr()){
+  var p=planInfo(me);
+  if(p.days!=null)acc+='<div class="muted" style="padding-top:10px">'+(p.kind==='ucretli'?'Ücretli sürüm · sonraki ödeme ':'Deneme sürümü · bitiş ')+fmtDate(p.end)+' ('+p.days+' gün kaldı)</div>';
+ }
+ el('accountCard').innerHTML=acc;
+ var items=[];
+ if(isMgr())items.push(['Makbuz ve fiş arşivi',"A.tab('receipts')"],['Rapor ve yedek',"A.tab('backup')"],['Site ayarları',"A.tab('site')"]);
+ items.push(['Şifre değiştir','A.changePw()'],['Çıkış yap','A.logout()']);
+ el('moreMenu').innerHTML=items.map(function(it){return '<button class="menu-item" onclick="'+it[1]+'"><span>'+it[0]+'</span><span>›</span></button>';}).join('')+
+  '<div class="legal"><button class="ghost small" onclick="A.showPrivacy()">KVKK</button><button class="ghost small" onclick="A.showTerms()">Kullanım koşulları</button><button class="ghost small" onclick="A.contact()">İletişim</button></div>';
+}
+function renderSiteForm(site){
+ var a=document.activeElement;
+ if(a&&(a.id==='setName'||a.id==='setDues'||a.id==='setOpen'))return;
+ el('setName').value=site.name;el('setDues').value=site.monthlyDues;el('setOpen').value=site.openingCash;
+}
+A.saveSite=function(){
+ if(!guard())return;
+ var site=curSite(),d=Number(el('setDues').value),o=Number(el('setOpen').value);
+ if(!isFinite(d)||d<0||!isFinite(o)){toast('Geçerli sayılar girin.');return;}
+ var name=el('setName').value.trim();
+ if(name.length<2){toast('Site adı en az 2 karakter olmalı.');return;}
+ site.name=name;site.monthlyDues=round2(d);site.openingCash=round2(o);
+ save();renderAll();toast('Ayarlar kaydedildi.');
+};
+
+/* ---------- makbuz / fiş arşivi ---------- */
+function archiveMonthKeys(site){
+ var current=monthKey(new Date()),first=current;
+ function consider(date,fallback){
+  var value=String(date||fallback||'').slice(0,7);
+  if(/^\d{4}-\d{2}$/.test(value)&&value<=current&&value<first)first=value;
+ }
+ (site.flats||[]).forEach(function(f){
+  Object.keys(f.payments||{}).forEach(function(k){
+   ((f.payments[k]&&f.payments[k].entries)||[]).forEach(function(e){consider(e.date,k+'-01');});
+  });
+ });
+ (site.expenses||[]).forEach(function(e){consider(e.date,current+'-01');});
+ var cp=current.split('-'),cutoff=monthKey(new Date(Number(cp[0]),Number(cp[1])-239,1));
+ if(first<cutoff)first=cutoff;
+ var p=first.split('-'),cursor=new Date(Number(p[0]),Number(p[1])-1,1),end=new Date(Number(cp[0]),Number(cp[1])-1,1),keys=[];
+ while(cursor<=end&&keys.length<240){keys.push(monthKey(cursor));cursor.setMonth(cursor.getMonth()+1);}
+ return keys.reverse();
+}
+function renderReceipts(){
+ if(!isMgr())return;
+ var site=curSite(),select=el('archiveMonth'),old=select.value,keys=archiveMonthKeys(site);
+ select.innerHTML=keys.map(function(k){return '<option value="'+k+'">'+monthLabel(k)+'</option>';}).join('');
+ select.value=keys.indexOf(old)>=0?old:(keys[0]||monthKey(new Date()));
+ var month=select.value,rows=[],income=0,spent=0;
+ (site.flats||[]).forEach(function(f){
+  Object.keys(f.payments||{}).forEach(function(k){
+   ((f.payments[k]&&f.payments[k].entries)||[]).forEach(function(e){
+    var date=String(e.date||k+'-01');
+    if(date.slice(0,7)!==month)return;
+    income+=Number(e.amount)||0;
+    rows.push({type:'payment',id:f.id,key:k,entryId:e.id,date:date,amount:Number(e.amount)||0,title:flatLabel(f),note:e.note||'',attachment:e.attachment||null});
+   });
+  });
+ });
+ (site.expenses||[]).forEach(function(e){
+  if(String(e.date||'').slice(0,7)!==month)return;
+  spent+=Number(e.amount)||0;
+  rows.push({type:'expense',id:e.id,key:'',entryId:'',date:e.date||'',amount:Number(e.amount)||0,title:e.title||'Gider',note:'',attachment:e.attachment||null});
+ });
+ rows.sort(function(a,b){return String(b.date).localeCompare(String(a.date))||a.type.localeCompare(b.type);});
+ el('archiveHeading').textContent=monthLabel(month)+' kayıtları';
+ el('archiveStats').innerHTML=statBox('Tahsilat',money(income))+statBox('Gider',money(spent))+statBox('Kayıt',String(rows.length));
+ el('archiveList').innerHTML=rows.length?rows.map(function(r){
+  var call="A.openArchiveItem('"+r.type+"','"+enc(r.id)+"','"+enc(r.key)+"','"+enc(r.entryId)+"')";
+  return '<div class="row tap" onclick="'+call+'"><div class="main"><b>'+(r.type==='payment'?'Makbuz':'Fiş')+' · '+esc(r.title)+'</b><div class="muted">'+fmtDate(r.date)+(r.attachment?' · Dosya var':'')+(r.note?' · '+esc(r.note):'')+'</div></div><b>'+money(r.amount)+'</b></div>';
+ }).join(''):'<div class="muted">Bu ay için kayıt yok. Tahsilat veya gider ekledikçe burada görünür.</div>';
+}
+A.archiveMonthChanged=function(){renderReceipts();};
+function attachmentPreview(att){
+ if(!att||!att.data)return '<div class="muted" style="margin-top:10px">Dosya eki yok.</div>';
+ if(att.type==='application/pdf')return '<h4>'+esc(att.name||'PDF')+'</h4><iframe title="Ek" src="'+esc(att.data)+'" style="width:100%;height:50vh;border:1px solid #dce3ec;border-radius:10px;background:#fff"></iframe>';
+ if(String(att.type||'').indexOf('image/')===0)return '<h4>'+esc(att.name||'Fotoğraf')+'</h4><img alt="Ek" src="'+esc(att.data)+'" style="width:100%;height:auto;max-height:60vh;object-fit:contain;border-radius:10px">';
+ return '<div class="muted">Bu dosya türü görüntülenemiyor.</div>';
+}
+function archiveRecord(site,type,id,key,entryId){
+ if(type==='payment'){
+  var f=findFlat(site,id),r=rec(f,key),entry=null;
+  if(!f||!r)return null;
+  (r.entries||[]).forEach(function(e){if(e.id===entryId)entry=e;});
+  return entry;
+ }
+ if(type==='expense'){
+  for(var i=0;i<(site.expenses||[]).length;i++)if(site.expenses[i].id===id)return site.expenses[i];
+ }
+ return null;
+}
+A.openArchiveItem=function(type,id,key,entryId){
+ if(!guard())return;
+ id=decodeURIComponent(id||'');key=decodeURIComponent(key||'');entryId=decodeURIComponent(entryId||'');
+ var site=curSite(),title='',text='',att=null,details='',del='';
+ if(type==='payment'){
+  var f=findFlat(site,id),r=rec(f,key),entry=archiveRecord(site,type,id,key,entryId);
+  if(!f||!r||!entry)return;
+  title='Tahsilat makbuzu';text=receiptText(site,f,key,entry,r);att=entry.attachment||null;
+  details='<div class="muted">'+esc(flatLabel(f))+' · '+monthLabel(key)+' · '+money(entry.amount)+'</div>';
+ }else if(type==='expense'){
+  var ex=archiveRecord(site,type,id,key,entryId);
+  if(!ex)return;
+  title='Gider fişi';att=ex.attachment||null;
+  details='<div class="muted">'+esc(ex.title||'Gider')+' · '+fmtDate(ex.date)+' · '+money(ex.amount)+'</div>';
+  del='<button class="danger full" onclick="A.delExpense(\''+esc(ex.id)+'\')">Gideri sil</button>';
+ }else return;
+ var upload='<label>Fotoğraf veya PDF ekle / değiştir</label><input id="archiveFileInput" type="file" accept="image/*,application/pdf" onchange="A.readArchiveAttachment(this,\''+type+'\',\''+enc(id)+'\',\''+enc(key)+'\',\''+enc(entryId)+'\')"><div id="archiveAttachmentHint" class="muted">Fotoğraf küçültülür; PDF en fazla 800 KB.</div>';
+ openModal('<h3>'+title+'</h3>'+details+
+  (text?'<label>Makbuz metni</label><textarea id="archiveReceiptText" readonly style="min-height:150px"></textarea><button class="secondary full" onclick="A.copyArchiveText()">Metni kopyala</button>':'')+
+  attachmentPreview(att)+upload+del+'<button class="ghost full" onclick="A.closeModal()">Kapat</button>');
+ if(text)el('archiveReceiptText').value=text;
+};
+A.copyArchiveText=function(){var t=el('archiveReceiptText');if(t&&t.value)copyText(t.value);};
+function saveArchiveAttachment(type,id,key,entryId,file,data,mime,name,ownerId){
+ if(!me||me.id!==ownerId||!isMgr()){toast('Oturum değişti; dosya kaydedilmedi.');return;}
+ var site=curSite(),record=archiveRecord(site,type,id,key,entryId);
+ if(!record){toast('Arşiv kaydı bulunamadı.');return;}
+ if(!data||data.length>MAX_ATTACHMENT_CHARS){toast('Ek dosya sınırı aşıyor. Daha küçük bir dosya seçin.');return;}
+ var oldSize=record.attachment&&record.attachment.data?record.attachment.data.length:0;
+ if(storedAttachmentChars(site)-oldSize+data.length>MAX_SITE_ATTACHMENT_CHARS){toast('Site için toplam dosya sınırı aşılıyor. Daha küçük bir dosya seçin.');return;}
+ var saveFile=function(){
+  if(!me||me.id!==ownerId||!isMgr()){toast('Oturum değişti; dosya kaydedilmedi.');return;}
+  record.attachment={name:String(name||file.name||'Belge').slice(0,120),type:mime,data:data,size:file.size||0};
+  save();renderAll();renderReceipts();toast('Dosya arşiv kaydına eklendi.');
+  A.openArchiveItem(type,enc(id),enc(key),enc(entryId));
+ };
+ if(record.attachment)confirmBox('Bu kayıtta zaten bir dosya var. Yeni dosya eskisinin yerine kaydedilsin mi?',saveFile);
+ else saveFile();
+}
+A.readArchiveAttachment=function(input,type,id,key,entryId){
+ var file=input&&input.files&&input.files[0];if(!file)return;
+ if(!guard())return;
+ var ownerId=me.id;
+ id=decodeURIComponent(id||'');key=decodeURIComponent(key||'');entryId=decodeURIComponent(entryId||'');
+ attachmentHint('archive','Dosya okunuyor ve hazırlanıyor…');
+ var t=checkFile(file,'archive');if(!t)return;
+ var reader=new FileReader();
+ reader.onerror=function(){attachmentHint('archive','Dosya okunamadı.');toast('Dosya okunamadı. Tekrar deneyin.');};
+ reader.onload=function(){
+  if(!me||me.id!==ownerId||!isMgr())return;
+  var data=String(reader.result||''),done=function(out,mime,name){
+   if(!me||me.id!==ownerId||!isMgr())return;
+   saveArchiveAttachment(type,id,key,entryId,file,out,mime,name,ownerId);
+  };
+  if(t.isImage)compressImageAttachment(data,file,'archive',done);
+  else done(data,'application/pdf',file.name);
+ };
+ reader.readAsDataURL(file);
+};
+
+/* ---------- süper admin ---------- */
+function planLines(u){
+ var h='',t=today();
+ if(u.trialStart){
+  var d=daysBetween(t,u.trialEnd);
+  h+='<div class="muted">Deneme: '+fmtDate(u.trialStart)+' → '+fmtDate(u.trialEnd)+(u.plan==='deneme'?(d>=0?' · '+d+' gün kaldı':' · süresi doldu'):'')+'</div>';
+ }else h+='<div class="muted">Deneme: henüz başlamadı</div>';
+ if(u.paidStart){
+  var d2=u.nextBilling?daysBetween(t,u.nextBilling):0;
+  h+='<div class="muted">Ücretli başlangıç: '+fmtDate(u.paidStart)+'</div><div class="muted">Sonraki ücret talebi: '+fmtDate(u.nextBilling)+(u.plan==='ucretli'?(d2>=0?' · '+d2+' gün kaldı':' · süresi doldu'):'')+'</div>';
+ }
+ return h;
+}
+function managerDetail(u){
+ if(!u)return '<div class="muted">Henüz onaylanmış yönetici yok.</div>';
+ var site=siteOf(u.id),p=planInfo(u),count=activeFlats(site).length;
+ var h='<div class="row" style="border:0;padding-top:0"><div class="main"><b>'+esc(u.name)+'</b><div class="muted">'+esc(u.email)+'</div></div><span class="badge '+(p.active?'paid':'unpaid')+'">'+(p.active?'Aktif':'Süresi doldu')+'</span></div>';
+ h+='<div class="grid3"><div class="stat"><small>Site</small><strong>'+esc(site.name||'—')+'</strong></div><div class="stat"><small>Daire</small><strong>'+count+' / '+(u.maxFlats||10)+'</strong></div><div class="stat"><small>Plan</small><strong>'+(p.kind==='ucretli'?'Ücretli':'Deneme')+'</strong></div></div>';
+ h+='<div style="margin-top:10px">'+planLines(u)+'</div>';
+ h+='<div class="grid" style="margin-top:12px">'+(u.plan==='ucretli'
+  ?'<button class="success small" onclick="A.extendPaid(\''+u.id+'\')">Dönemi uzat</button><button class="secondary small" onclick="A.toTrial(\''+u.id+'\')">Denemeye al</button>'
+  :'<button class="success small" onclick="A.toPaid(\''+u.id+'\')">Ücretliye geçir</button><button class="secondary small" onclick="A.extendTrial(\''+u.id+'\')">Denemeyi +7 gün</button>')+'</div>';
+ h+='<details><summary>Daire sınırı</summary><div class="grid"><input id="mx_'+u.id+'" type="number" inputmode="numeric" min="1" value="'+(u.maxFlats||10)+'"><button class="secondary" onclick="A.setMax(\''+u.id+'\')">Kaydet</button></div></details>';
+ h+='<details><summary>Hesap işlemleri</summary><div class="grid"><button class="secondary" onclick="A.resetPw(\''+u.id+'\')">Şifre sıfırla</button><button class="danger" onclick="A.delUser(\''+u.id+'\')">Yöneticiyi sil</button></div></details>';
+ return h;
+}
+function managerApplicationCard(u){
+ return '<div class="row"><div class="main"><b>'+esc(u.name)+'</b><div class="muted">'+esc(u.email)+' · '+fmtDate(u.createdAt)+'</div></div><button class="success small" onclick="A.setRole(\''+u.id+'\',\'yonetici\')">Onayla</button><button class="danger small" onclick="A.delUser(\''+u.id+'\')">Sil</button></div>';
+}
+function renderMembers(){
+ var users=db.users.filter(function(u){return u.role==='beklemede'||u.role==='yonetici';});
+ var pending=users.filter(function(u){return u.role==='beklemede';});
+ var managers=users.filter(function(u){return u.role==='yonetici';}).sort(function(a,b){return a.name.localeCompare(b.name,'tr');});
+ var trial=managers.filter(function(u){return u.plan==='deneme';}).length;
+ el('memStats').innerHTML=statBox('Yönetici',String(managers.length))+statBox('Başvuru bekliyor',String(pending.length))+statBox('Deneme',String(trial))+statBox('Ücretli',String(managers.length-trial));
+ el('pendCard').style.display=pending.length?'block':'none';
+ el('memberList').innerHTML=pending.map(managerApplicationCard).join('');
+ var select=el('managerSelect'),old=st.managerId||select.value;
+ select.innerHTML=managers.length?managers.map(function(u){return '<option value="'+u.id+'">'+esc(u.name)+' · '+esc(u.email)+'</option>';}).join(''):'<option value="">Yönetici yok</option>';
+ st.managerId=managers.some(function(u){return u.id===old;})?old:(managers.length?managers[0].id:'');
+ select.value=st.managerId;
+ var selected=null;managers.forEach(function(u){if(u.id===st.managerId)selected=u;});
+ el('managerDetail').innerHTML=managerDetail(selected);
+}
+A.selectManager=function(id){st.managerId=id||'';renderMembers();};
+A.setRole=function(id,role){
+ if(!superOnly())return;
+ var u=findUser(id);if(!u||u.role==='superadmin'||role!=='yonetici')return;
+ u.role='yonetici';
+ if(!u.trialStart)startTrial(u);
+ delete u.managerId;st.managerId=u.id;
+ save();renderMembers();toast('Yönetici başvurusu onaylandı.');
+};
+A.setMax=function(id){
+ if(!superOnly())return;
+ var u=findUser(id),v=Number(el('mx_'+id).value);
+ if(!u||!isFinite(v)||v<1){toast('Geçerli bir sayı girin.');return;}
+ u.maxFlats=Math.floor(v);save();renderMembers();toast('Daire sınırı güncellendi.');
+};
+A.toPaid=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u)return;
+ u.plan='ucretli';u.paidStart=today();u.nextBilling=addMonths(today(),Number(db.settings.billingMonths)||1);
+ save();renderMembers();toast('Ücretli sürüme geçirildi.');
+};
+A.extendPaid=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u)return;
+ var base=u.nextBilling&&u.nextBilling>=today()?u.nextBilling:today();
+ u.nextBilling=addMonths(base,Number(db.settings.billingMonths)||1);
+ save();renderMembers();toast('Dönem uzatıldı.');
+};
+A.toTrial=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u)return;
+ confirmBox('Yönetici deneme planına alınsın mı? Deneme süresi dolmuşsa erişimi kapanır.',function(){u.plan='deneme';save();renderMembers();});
+};
+A.extendTrial=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u)return;
+ if(!u.trialStart)startTrial(u);
+ var base=u.trialEnd>=today()?u.trialEnd:today();
+ u.trialEnd=addDays(base,7);save();renderMembers();toast('Deneme 7 gün uzatıldı.');
+};
+A.resetPw=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u)return;
+ askBox(u.name+' için yeni şifre','En az 6 karakter','text',function(v){
+  if(v.length<6){toast('Şifre en az 6 karakter olmalı.');return;}
+  u.salt=uid()+uid();u.hash=hashPw(v,u.salt);save();toast('Şifre sıfırlandı. Yeni şifreyi yöneticiye iletin.');
+ });
+};
+A.delUser=function(id){
+ if(!superOnly())return;var u=findUser(id);if(!u||u.role==='superadmin')return;
+ confirmBox(u.role==='yonetici'?u.name+' yöneticisi ve bu hesaba bağlı site kayıtları kalıcı olarak silinsin mi?':'Yönetici başvurusu ('+u.name+') kalıcı olarak silinsin mi?',function(){
+  db.users=db.users.filter(function(x){return x.id!==id;});
+  delete db.sites[id];
+  if(st.managerId===id)st.managerId='';
+  save();renderMembers();
+ });
+};
+function renderSysSettings(){
+ var s=db.settings;
+ el('sTrial').value=s.trialDays;el('sPrice').value=s.price;el('sBilling').value=s.billingMonths;
+ el('sContact').value=s.contact||'';el('sCompany').value=s.company||'';el('sAddress').value=s.address||'';
+}
+A.saveSettings=function(){
+ if(!superOnly())return;
+ var t=Number(el('sTrial').value),p=Number(el('sPrice').value),b=Number(el('sBilling').value);
+ if(!isFinite(t)||t<1||!isFinite(p)||p<0||!isFinite(b)||b<1){toast('Geçerli değerler girin.');return;}
+ db.settings=Object.assign({},db.settings,{trialDays:Math.floor(t),price:p,billingMonths:Math.floor(b),contact:el('sContact').value.trim(),company:el('sCompany').value.trim(),address:el('sAddress').value.trim()});
+ save();renderLanding();toast('Ayarlar kaydedildi. Yeni deneme süresi yalnızca yeni başlayan denemelere uygulanır.');
+};
+
+/* ---------- rapor ve yedek ---------- */
+function renderBackup(){
+ el('bkBack').style.display=isMgr()?'':'none';
+ if(superOnly()){
+  el('bkTitle').textContent='Yedek';
+  el('bkInfo').textContent='Tüm yönetici hesaplarını ve site verilerini yedekler. Yedek parola özetleri ve ek dosyalar içerir; büyük olabilir, güvenli saklayın.';
+  el('bkButtons').innerHTML='<button class="secondary" onclick="A.bkJson()">Yedeği göster</button><span></span>';
+ }else{
+  el('bkTitle').textContent='Rapor ve yedek';
+  el('bkInfo').textContent='Aidat raporunu CSV olarak alın (Excel için noktalı virgülle ayrılır) veya site yedeğini alın. Site yedeği daire iletişim bilgilerini ve makbuz/fiş dosyalarını içerir; büyük olabilir.';
+  el('bkButtons').innerHTML='<button class="secondary" onclick="A.bkCsv()">Aidat raporu (CSV)</button><button class="secondary" onclick="A.bkJson()">Site yedeği</button>';
+ }
+}
+function csvCell(v){var s=String(v==null?'':v);return /[;"]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;}
+A.bkCsv=function(){
+ if(!isMgr())return;
+ var site=curSite(),rows=[['Daire','Ay','Aidat','Ödenen','Kalan','Durum','Gecikme (ay)']];
+ var names={odendi:'Ödendi',kismi:'Kısmi',odenmedi:'Ödenmedi'};
+ activeFlats(site).forEach(function(f){
+  Object.keys(f.payments||{}).sort().forEach(function(k){
+   var r=f.payments[k];
+   rows.push([f.no,monthLabel(k),r.due,paidOf(r),remainOf(r),names[statusOf(r)],statusOf(r)==='odendi'?0:(r.delay||1)]);
+  });
+ });
+ el('bkText').value=rows.map(function(r){return r.map(csvCell).join(';');}).join(NL);
+ toast('CSV hazır. Kopyala ile alın.');
+};
+function cleanSiteSnapshot(site){
+ site=site||{};
+ var remaining=MAX_SITE_ATTACHMENT_CHARS;
+ function cleanAttachment(att){
+  if(!att||typeof att.data!=='string'||att.data.length>MAX_ATTACHMENT_CHARS||att.data.length>remaining)return null;
+  if(att.type==='application/pdf'&&att.data.indexOf('data:application/pdf;base64,')!==0)return null;
+  if(att.type==='image/jpeg'&&att.data.indexOf('data:image/jpeg;base64,')!==0)return null;
+  if(att.type!=='application/pdf'&&att.type!=='image/jpeg')return null;
+  remaining-=att.data.length;
+  return {name:String(att.name||'Belge').slice(0,120),type:att.type,data:att.data,size:Number(att.size)||0};
+ }
+ var flats=(Array.isArray(site.flats)?site.flats:[]).map(function(f){
+  var payments={};
+  Object.keys(f.payments||{}).forEach(function(k){
+   var r=f.payments[k]||{};
+   payments[k]={due:Number(r.due)||0,delay:Number(r.delay)||1,entries:(Array.isArray(r.entries)?r.entries:[]).map(function(e){
+    var item={id:e.id,amount:Number(e.amount)||0,date:e.date||'',note:String(e.note||'').slice(0,500)};
+    var attachment=cleanAttachment(e.attachment);if(attachment)item.attachment=attachment;
+    return item;
+   })};
+  });
+  return {id:f.id,no:String(f.no==null?'':f.no),owner:String(f.owner||''),phone:String(f.phone||''),active:f.active!==false,payments:payments};
+ });
+ var expenses=(Array.isArray(site.expenses)?site.expenses:[]).map(function(e){
+  var item={id:e.id,title:e.title,amount:e.amount,date:e.date};
+  var attachment=cleanAttachment(e.attachment);if(attachment)item.attachment=attachment;
+  return item;
+ });
+ return {name:String(site.name||''),monthlyDues:Number(site.monthlyDues)||0,openingCash:Number(site.openingCash)||0,flats:flats,expenses:expenses};
+}
+function cleanUsersSnapshot(users){
+ return (Array.isArray(users)?users:[]).filter(function(u){return u.role==='superadmin'||u.role==='yonetici'||u.role==='beklemede';}).map(function(u){
+  var copy={};Object.keys(u).forEach(function(k){if(k!=='managerId')copy[k]=u[k];});return copy;
+ });
+}
+A.bkJson=function(){
+ var o;
+ if(superOnly()){
+  var users=cleanUsersSnapshot(db.users),sites={};
+  users.forEach(function(u){if(u.role==='yonetici'&&db.sites[u.id])sites[u.id]=cleanSiteSnapshot(db.sites[u.id]);});
+  o={type:'aida-full',version:4,users:users,sites:sites,settings:db.settings};
+ }else o={type:'aida-site',version:4,site:cleanSiteSnapshot(siteOf(me.id))};
+ el('bkText').value=JSON.stringify(o);
+ toast('Yedek hazır. Kopyala ile alın.');
+};
+A.bkCopy=function(){var t=el('bkText').value;if(!t){toast('Kopyalanacak içerik yok.');return;}copyText(t);};
+A.bkRestore=function(){
+ var raw=el('bkText').value.trim(),o;
+ try{o=JSON.parse(raw);}catch(e){toast('Geçerli bir yedek yapıştırın.');return;}
+ if(superOnly()){
+  if(!o||o.type!=='aida-full'||!Array.isArray(o.users)){toast('Bu bir tam yedek değil.');return;}
+  confirmBox('Mevcut veriler yedekle değiştirilecek. Devam edilsin mi?',function(){
+   var d=defaults();
+   d.users=cleanUsersSnapshot(o.users);d.sites={};d.settings=Object.assign(d.settings,o.settings||{});
+   d.users.forEach(function(u){if(u.role==='yonetici'&&o.sites&&o.sites[u.id])d.sites[u.id]=cleanSiteSnapshot(o.sites[u.id]);});
+   d.session=findIn(d.users,me.id)?me.id:null;
+   db=d;save();A.enter();toast('Yedek yüklendi.');
+  });
+ }else if(isMgr()){
+  if(!o||o.type!=='aida-site'||!o.site||!Array.isArray(o.site.flats)){toast('Bu bir site yedeği değil.');return;}
+  confirmBox('Site verileriniz yedekle değiştirilecek. Devam edilsin mi?',function(){
+   db.sites[me.id]=cleanSiteSnapshot(o.site);siteOf(me.id);st.flatId='';save();renderAll();toast('Yedek yüklendi.');
+  });
+ }
+};
+
+/* ---------- şifre kurtarma + başlangıç ---------- */
+(function(){
+ var r=window.__RESET__;
+ if(r&&r.password){
+  var u=null;
+  if(r.email)u=findByEmail(normEmail(r.email));
+  else for(var i=0;i<db.users.length;i++)if(db.users[i].role==='superadmin'){u=db.users[i];break;}
+  if(!u)resetNote=r.email?'Sıfırlama: bu e-posta kayıtlı değil':'Sıfırlama: Süper Admin hesabı bulunamadı (kayıt cihazda yok)';
+  else if(String(r.password).length<6)resetNote='Sıfırlama: şifre en az 6 karakter olmalı';
+  else{u.salt=uid()+uid();u.hash=hashPw(String(r.password),u.salt);db.session=null;save();resetNote='Şifre sıfırlandı. Hesap e-postası: '+u.email;}
+ }
+})();
+el('modal').onclick=function(e){if(e.target===el('modal'))closeModal();};
+A.enter();
+})();
+</script>
+</body>
+</html>
+`;
+
+const initJs =
+  "window.__INIT__=" +
+  JSON.stringify(stored).replace(/</g, "\\u003c") +
+  ";window.__RESET__=" +
+  JSON.stringify({ email: RESET_EMAIL, password: RESET_PASSWORD }).replace(/</g, "\\u003c") +
+  ";";
+const page = html.replace("/*__INIT__*/", function () {
+  return initJs;
+});
+
+$ui.render({
+  props: {
+    title: "AİDA - Site Yönetimi"
+  },
+  views: [
+    {
+      type: "web",
+      props: {
+        html: page,
+        showsProgress: false,
+        script: function () {
+          window.nativeNotify = function (name, obj) {
+            try {
+              $notify(name, obj);
+            } catch (e) {}
+          };
+        }
+      },
+      layout: $layout.fill,
+      events: {
+        save: function (o) {
+          try {
+            $file.write({
+              data: $data({ string: o.data }),
+              path: "shared://aida_data.json"
+            });
+          } catch (e) {}
+          try {
+            $cache.set("aida_data", o.data);
+          } catch (e) {}
+        },
+        openURL: function (o) {
+          if (o && o.url) $app.openURL(o.url);
+        },
+        copy: function (o) {
+          if (o && typeof o.text === "string") $clipboard.text = o.text;
+        }
+      }
+    }
+  ]
+});
